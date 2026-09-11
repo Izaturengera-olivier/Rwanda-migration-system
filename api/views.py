@@ -1,9 +1,12 @@
 import os
 import json
 import logging
+import random
 from django.db.models import Q, Count
 from django.utils import timezone
 from django.contrib.auth import authenticate
+from django.core.cache import cache
+from django.core.mail import send_mail
 from rest_framework import viewsets, status, permissions, views
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
@@ -392,6 +395,101 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().order_by('-timestamp')
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminRole]
+
+
+class UserRegistrationView(views.APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        username = (request.data.get('username') or '').strip()
+        email = (request.data.get('email') or '').strip()
+        password = request.data.get('password') or ''
+
+        if not username or not email or not password:
+            return Response({'detail': 'Username, email, and password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(username__iexact=username).exists():
+            return Response({'detail': 'Username is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({'detail': 'Email is already registered.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.create_user(username=username, email=email, password=password, role='viewer')
+        return Response({
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+        }, status=status.HTTP_201_CREATED)
+
+
+class ForgotPasswordView(views.APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        from django.conf import settings
+        email = (request.data.get('email') or '').strip().lower()
+        if not email:
+            return Response({'detail': 'Email is required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'No account found for this email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        code = str(random.randint(100000, 999999))
+        cache.set(f'password_reset:{email}', code, timeout=600)
+        logger.info(f"Password reset verification code for {email}: {code}")
+
+        try:
+            send_mail(
+                subject='Your password reset code',
+                message=f'Your verification code is: {code}. This code expires in 10 minutes.',
+                from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', 'no-reply@divine.local'),
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            logger.warning(f"Mail send failed (check SMTP settings): {e}")
+
+        response_data = {
+            'detail': 'A verification code has been generated.',
+        }
+
+        if getattr(settings, 'DEBUG', False):
+            response_data['code'] = code
+            response_data['detail'] = f'Verification code sent! (Dev code: {code})'
+
+        return Response(response_data)
+
+
+class ResetPasswordView(views.APIView):
+    permission_classes = []
+    authentication_classes = []
+
+    def post(self, request):
+        email = (request.data.get('email') or '').strip().lower()
+        code = (request.data.get('code') or '').strip()
+        password = request.data.get('password') or ''
+
+        if not email or not code or not password:
+            return Response({'detail': 'Email, verification code, and new password are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        cached_code = cache.get(f'password_reset:{email}')
+        if not cached_code or str(cached_code) != str(code):
+            return Response({'detail': 'Invalid or expired verification code.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'No account found for this email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        user.set_password(password)
+        user.save()
+        cache.delete(f'password_reset:{email}')
+        return Response({'detail': 'Password reset successful.'})
 
 
 class LoginView(views.APIView):

@@ -1,0 +1,7 @@
+district,sector,province,year,hospitals,health_centers,dispensaries,doctors,nurses,hospital_beds,healthcare_access_index,distance_to_nearest_hospital,maternal_mortality_rate,infant_mortality_rate,vaccination_coverage
+Nyaruguru,,Southern,2023,1,14,20,25,180,80,42.0,18.5,18.0,24.0,88.0
+Gisagara,,Southern,2023,1,16,22,32,210,100,48.0,14.2,16.0,22.0,91.0
+Ngororero,,Western,2023,1,15,18,26,170,76,38.0,22.0,20.0,27.0,85.0
+Rutsiro,,Western,2023,1,13,19,28,180,90,44.0,16.8,17.0,23.0,89.0
+Gicumbi,,Northern,2023,2,18,27,44,260,140,55.0,11.5,13.0,18.0,93.0
+Kirehe,,Eastern,2023,1,12,17,22,150,68,35.0,25.5,22.0,30.0,82.0

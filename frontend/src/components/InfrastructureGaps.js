@@ -54,13 +54,12 @@ function InfrastructureGaps() {
       setGeoData(geoRes.data);
       const locs = distRes.data.results || distRes.data;
       setDistricts(locs);
-      return Promise.all(locs.map(d =>
+      Promise.all(locs.map(d =>
         axios.get(`${API_BASE}/locations/${d.id}/profile/`, { params: { year } })
           .then(r => ({ id: d.id, name: d.name, province: d.province, infra: r.data.infrastructure }))
           .catch(() => ({ id: d.id, name: d.name, province: d.province, infra: null }))
-      ));
-    }).then(results => setInfraData(results))
-      .catch(() => setError('Failed to load infrastructure data'));
+      )).then(results => setInfraData(results));
+    }).catch(err => setError(`Failed to load infrastructure data: ${err.message}`));
   }, [year]);
 
   const getFeatureStyle = (feature) => {

@@ -1,0 +1,7 @@
+district,sector,province,year,total_labor_force,employed_population,unemployed_population,unemployment_rate,youth_unemployment_rate,agricultural_employment,formal_sector_employment,informal_sector_employment,avg_monthly_income,poverty_rate,business_count,job_opportunities_index
+Nyaruguru,,Southern,2023,142000,116000,26000,18.2,32.5,64000,18000,36000,18000,58.3,420,28.0
+Gisagara,,Southern,2023,148000,124000,24000,15.8,28.4,67000,22000,39000,21000,52.1,580,34.0
+Ngororero,,Western,2023,154000,123000,31000,20.1,35.8,70000,16000,42000,16500,61.4,380,24.0
+Rutsiro,,Western,2023,145000,121000,24000,16.5,30.2,66000,19000,35000,19500,54.8,450,31.0
+Gicumbi,,Northern,2023,172000,147000,25000,14.2,25.6,76000,27000,43000,24000,46.5,720,40.0
+Kirehe,,Eastern,2023,149000,116000,33000,22.4,38.9,72000,15000,31000,15000,64.2,320,20.0

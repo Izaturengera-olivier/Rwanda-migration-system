@@ -5,7 +5,10 @@ import {
   CircularProgress, Alert, Button, Chip, Divider, LinearProgress
 } from '@mui/material';
 import { Bar, Radar } from 'react-chartjs-2';
+import { Chart as ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend } from 'chart.js';
 import axios from 'axios';
+
+ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend);
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -117,9 +120,14 @@ function DistrictProfile() {
                 <>
                   <Typography variant="subtitle2" gutterBottom>Key Contributing Factors:</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {prediction.contributing_factors.map((f, i) => (
-                      <Chip key={i} label={f} size="small" sx={{ bgcolor: RISK_COLORS[riskCat], color: 'white' }} />
-                    ))}
+                    {prediction.contributing_factors.map((f, i) => {
+                      const labelText = typeof f === 'object' && f !== null
+                        ? (f.name ? `${f.name}${f.value ? `: ${f.value}` : ''}` : JSON.stringify(f))
+                        : String(f);
+                      return (
+                        <Chip key={i} label={labelText} size="small" sx={{ bgcolor: RISK_COLORS[riskCat], color: 'white' }} />
+                      );
+                    })}
                   </Box>
                 </>
               )}

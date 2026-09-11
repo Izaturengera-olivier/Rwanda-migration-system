@@ -17,13 +17,15 @@ class DataValidator:
     """Validate uploaded data files."""
     
     REQUIRED_COLUMNS = {
-        'population': ['district', 'sector', 'year', 'total_population'],
-        'migration': ['district', 'sector', 'year', 'migration_rate'],
-        'employment': ['district', 'sector', 'year', 'unemployment_rate'],
-        'education': ['district', 'sector', 'year', 'literacy_rate'],
-        'healthcare': ['district', 'sector', 'year', 'healthcare_access_index'],
-        'infrastructure': ['district', 'sector', 'year', 'electricity_coverage'],
+        'population': ['district', 'year', 'total_population'],
+        'migration': ['district', 'year', 'migration_rate'],
+        'employment': ['district', 'year', 'unemployment_rate'],
+        'education': ['district', 'year', 'literacy_rate'],
+        'healthcare': ['district', 'year', 'healthcare_access_index'],
+        'infrastructure': ['district', 'year', 'electricity_coverage'],
     }
+
+    OPTIONAL_COLUMNS = ['sector', 'province']
     
     @staticmethod
     def validate_file(file_path, dataset_type):
@@ -40,12 +42,17 @@ class DataValidator:
             else:
                 return {'valid': False, 'errors': ['Unsupported file format']}
             
-            # Check required columns
+            # Check required columns. 'sector' and 'province' are optional because many
+            # upload files have blank values or omit them entirely.
             required = DataValidator.REQUIRED_COLUMNS.get(dataset_type, [])
             missing_cols = [col for col in required if col not in df.columns]
-            
             if missing_cols:
                 errors.append(f"Missing required columns: {', '.join(missing_cols)}")
+
+            for col in DataValidator.OPTIONAL_COLUMNS:
+                if col in df.columns:
+                    continue
+                warnings.append(f"Optional column '{col}' is missing; blank values are accepted.")
             
             # Check for empty data
             if df.empty:

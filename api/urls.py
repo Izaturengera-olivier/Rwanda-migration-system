@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     LocationViewSet, DatasetViewSet, PredictionViewSet,
     ModelVersionViewSet, DashboardViewSet, AuditLogViewSet,
-    UserViewSet, LoginView, LogoutView
+    UserViewSet, LoginView, LogoutView, UserRegistrationView,
+    ForgotPasswordView, ResetPasswordView
 )
 
 router = DefaultRouter()
@@ -16,8 +17,12 @@ router.register(r'audit-logs', AuditLogViewSet, basename='auditlog')
 router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
+    path('locations/study-districts/', LocationViewSet.as_view({'get': 'study_districts'}), name='study-districts'),
     path('', include(router.urls)),
+    path('auth/signup/', UserRegistrationView.as_view(), name='api-signup'),
     path('auth/login/', LoginView.as_view(), name='api-login'),
     path('auth/logout/', LogoutView.as_view(), name='api-logout'),
     path('auth/me/', LoginView.as_view(), name='api-me'),
+    path('auth/forgot-password/', ForgotPasswordView.as_view(), name='api-forgot-password'),
+    path('auth/reset-password/', ResetPasswordView.as_view(), name='api-reset-password'),
 ]

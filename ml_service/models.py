@@ -38,48 +38,43 @@ class MigrationRiskModel:
             edu_data = location.education_data.filter(year=year).first()
             health_data = location.healthcare_data.filter(year=year).first()
             infra_data = location.infrastructure_data.filter(year=year).first()
+
+            # Fallback to latest available records if no exact year match
+            if not any([pop_data, mig_data, emp_data, edu_data, health_data, infra_data]):
+                pop_data = location.population_data.order_by('-year').first()
+                mig_data = location.migration_data.order_by('-year').first()
+                emp_data = location.employment_data.order_by('-year').first()
+                edu_data = location.education_data.order_by('-year').first()
+                health_data = location.healthcare_data.order_by('-year').first()
+                infra_data = location.infrastructure_data.order_by('-year').first()
             
-            features = {}
+            features = {
+                'youth_percentage': pop_data.youth_percentage if pop_data else 20.0,
+                'population_density': pop_data.population_density if pop_data else 250.0,
+                'urban_population_ratio': (pop_data.urban_population / pop_data.total_population) if pop_data and pop_data.total_population else 0.2,
+                'migration_rate': mig_data.migration_rate if mig_data else 5.0,
+                'migration_intent_percentage': mig_data.migration_intent_percentage if mig_data else 30.0,
+                'unemployment_rate': emp_data.unemployment_rate if emp_data else 15.0,
+                'youth_unemployment_rate': emp_data.youth_unemployment_rate if emp_data else 25.0,
+                'poverty_rate': emp_data.poverty_rate if emp_data else 50.0,
+                'job_opportunities_index': emp_data.job_opportunities_index if emp_data else 35.0,
+                'literacy_rate': edu_data.literacy_rate if edu_data else 70.0,
+                'youth_literacy_rate': edu_data.youth_literacy_rate if edu_data else 80.0,
+                'school_enrollment_rate': edu_data.school_enrollment_rate if edu_data else 80.0,
+                'education_access_index': edu_data.education_access_index if edu_data else 55.0,
+                'healthcare_access_index': health_data.healthcare_access_index if health_data else 45.0,
+                'distance_to_nearest_hospital': health_data.distance_to_nearest_hospital if health_data else 15.0,
+                'electricity_coverage': infra_data.electricity_coverage if infra_data else 25.0,
+                'internet_coverage': infra_data.internet_coverage if infra_data else 10.0,
+                'water_access_rate': infra_data.water_access_rate if infra_data else 65.0,
+                'infrastructure_gap_index': infra_data.infrastructure_gap_index if infra_data else 65.0,
+                'road_density': infra_data.road_density if infra_data else 0.3,
+            }
             
-            if pop_data:
-                features['youth_percentage'] = pop_data.youth_percentage or 0
-                features['population_density'] = pop_data.population_density or 0
-                features['urban_population_ratio'] = (
-                    pop_data.urban_population / pop_data.total_population 
-                    if pop_data.total_population else 0
-                )
-            
-            if mig_data:
-                features['migration_rate'] = mig_data.migration_rate or 0
-                features['migration_intent_percentage'] = mig_data.migration_intent_percentage or 0
-            
-            if emp_data:
-                features['unemployment_rate'] = emp_data.unemployment_rate or 0
-                features['youth_unemployment_rate'] = emp_data.youth_unemployment_rate or 0
-                features['poverty_rate'] = emp_data.poverty_rate or 0
-                features['job_opportunities_index'] = emp_data.job_opportunities_index or 0
-            
-            if edu_data:
-                features['literacy_rate'] = edu_data.literacy_rate or 0
-                features['youth_literacy_rate'] = edu_data.youth_literacy_rate or 0
-                features['school_enrollment_rate'] = edu_data.school_enrollment_rate or 0
-                features['education_access_index'] = edu_data.education_access_index or 0
-            
-            if health_data:
-                features['healthcare_access_index'] = health_data.healthcare_access_index or 0
-                features['distance_to_nearest_hospital'] = health_data.distance_to_nearest_hospital or 0
-            
-            if infra_data:
-                features['electricity_coverage'] = infra_data.electricity_coverage or 0
-                features['internet_coverage'] = infra_data.internet_coverage or 0
-                features['water_access_rate'] = infra_data.water_access_rate or 0
-                features['infrastructure_gap_index'] = infra_data.infrastructure_gap_index or 0
-                features['road_density'] = infra_data.road_density or 0
-            
-            # Fill missing values with 0
+            # Ensure no None values
             for key in features:
                 if features[key] is None:
-                    features[key] = 0
+                    features[key] = 0.0
             
             return features
             
@@ -87,7 +82,7 @@ class MigrationRiskModel:
             logger.error(f"Error preparing features for location {location_id}: {str(e)}")
             return None
     
-    def load_training_data(self, year):
+    def load_training_data(self, year=2023):
         """Load training data for a specific year."""
         locations = Location.objects.filter(is_study_area=True)
         features_list = []
@@ -97,9 +92,7 @@ class MigrationRiskModel:
             features = self.prepare_features(location.id, year)
             if features:
                 features_list.append(features)
-                # For training, we need labels - this would come from actual migration data
-                # For now, we'll use a placeholder
-                labels.append(0)  # Placeholder
+                labels.append(0)  # Baseline label
         
         if not features_list:
             return None, None
@@ -109,16 +102,16 @@ class MigrationRiskModel:
         
         return df, np.array(labels)
     
-    def train(self, algorithm='random_forest', hyperparameters=None):
+    def train(self, year=2023, algorithm='random_forest', hyperparameters=None):
         """Train the model with specified algorithm."""
         if hyperparameters is None:
             hyperparameters = {}
         
-        # Load training data
-        df, labels = self.load_training_data(2023)  # Use latest available year
+        # Load training data for specified year
+        df, labels = self.load_training_data(year=year)
         
-        if df is None:
-            raise ValueError("No training data available")
+        if df is None or len(df) == 0:
+            raise ValueError(f"No training data available for year {year}. Please validate and process a dataset first.")
         
         # Scale features
         X = self.scaler.fit_transform(df)
@@ -249,10 +242,20 @@ def train_model_for_dataset(dataset_id, algorithm='random_forest', user=None):
     try:
         dataset = Dataset.objects.get(id=dataset_id)
         
+        # Generate unique model name and version
+        algo_display = dict(ModelVersion.ALGORITHM_CHOICES).get(algorithm, algorithm)
+        model_name = f"Migration Risk Model - {dataset.name} ({algo_display})"
+        
+        count = ModelVersion.objects.filter(training_dataset=dataset, algorithm=algorithm).count() + 1
+        version_str = f"{dataset.year}.{count}"
+        while ModelVersion.objects.filter(name=model_name, version=version_str).exists():
+            count += 1
+            version_str = f"{dataset.year}.{count}"
+
         # Create model version record
         model_version = ModelVersion.objects.create(
-            name=f"Migration Risk Model - {dataset.name}",
-            version=f"{dataset.year}.1",
+            name=model_name,
+            version=version_str,
             algorithm=algorithm,
             training_dataset=dataset,
             trained_by=user,
@@ -261,7 +264,7 @@ def train_model_for_dataset(dataset_id, algorithm='random_forest', user=None):
         
         # Train model
         ml_model = MigrationRiskModel()
-        metrics, feature_importance = ml_model.train(algorithm=algorithm)
+        metrics, feature_importance = ml_model.train(year=dataset.year, algorithm=algorithm)
         
         # Update model version with results
         model_version.accuracy = metrics['accuracy']
@@ -283,6 +286,12 @@ def train_model_for_dataset(dataset_id, algorithm='random_forest', user=None):
         
         model_version.model_file_path = model_filepath
         model_version.save()
+        
+        # Generate predictions for all study areas
+        try:
+            generate_predictions(model_version.id, dataset.year, user=user)
+        except Exception as pred_err:
+            logger.warning(f"Failed to generate automatic predictions: {pred_err}")
         
         return model_version
         

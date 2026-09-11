@@ -1,0 +1,7 @@
+district,sector,province,year,total_population,youth_population_15_24,youth_population_15_35,youth_percentage,household_count,avg_household_size,population_density
+Nyaruguru,,Southern,2023,328000,72160,114800,22.0,65600,5.0,198.0
+Gisagara,,Southern,2023,341000,74020,119350,21.7,68200,5.0,312.0
+Ngororero,,Western,2023,358000,78760,125300,22.0,71600,5.0,285.0
+Rutsiro,,Western,2023,310000,67580,108500,21.8,62000,5.0,245.0
+Gicumbi,,Northern,2023,397000,87340,138950,22.0,79400,5.0,358.0
+Kirehe,,Eastern,2023,345000,75900,120750,22.0,69000,5.0,198.0
