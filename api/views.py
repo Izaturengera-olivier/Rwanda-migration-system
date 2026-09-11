@@ -388,7 +388,87 @@ class UserViewSet(viewsets.ModelViewSet):
         if password:
             user.set_password(password)
             user.save()
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='user_created',
+            entity_type='User',
+            entity_id=user.id,
+            description=f"Created user: {user.username} (role: {user.role})"
+        )
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        data = request.data.copy()
+        password = data.pop('password', None)
+        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        if password:
+            user.set_password(password)
+            user.save()
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='user_updated',
+            entity_type='User',
+            entity_id=user.id,
+            description=f"Updated user: {user.username}"
+        )
+        return Response(serializer.data)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        username = instance.username
+        user_id = instance.id
+        self.perform_destroy(instance)
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='user_deleted',
+            entity_type='User',
+            entity_id=user_id,
+            description=f"Deleted user: {username}"
+        )
+        return Response({'detail': f'User {username} deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post'])
+    def toggle_active(self, request, pk=None):
+        user = self.get_object()
+        user.is_active = not user.is_active
+        user.save()
+        status_text = 'activated' if user.is_active else 'deactivated'
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='user_status_change',
+            entity_type='User',
+            entity_id=user.id,
+            description=f"{status_text.capitalize()} user: {user.username}"
+        )
+        return Response({
+            'detail': f'User {user.username} {status_text} successfully.',
+            'user': UserSerializer(user).data
+        })
+
+    @action(detail=True, methods=['post'])
+    def change_role(self, request, pk=None):
+        user = self.get_object()
+        new_role = request.data.get('role')
+        if not new_role or new_role not in ['admin', 'researcher', 'viewer']:
+            return Response({'error': 'Invalid role specified. Valid roles: admin, researcher, viewer.'}, status=status.HTTP_400_BAD_REQUEST)
+        old_role = user.role
+        user.role = new_role
+        user.save()
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='user_role_change',
+            entity_type='User',
+            entity_id=user.id,
+            description=f"Changed user {user.username} role from {old_role} to {new_role}"
+        )
+        return Response({
+            'detail': f'User {user.username} role changed to {new_role}.',
+            'user': UserSerializer(user).data
+        })
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -514,20 +594,20 @@ class LoginView(views.APIView):
         user = authenticate(request, username=username, password=password)
         if user is None:
             return Response({'detail': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
-        if not (user.is_superuser or getattr(user, 'role', '') == 'admin'):
-            return Response({'detail': 'Access denied. Administrator role required.'}, status=status.HTTP_403_FORBIDDEN)
+        is_admin = user.is_superuser or getattr(user, 'role', '') == 'admin'
         token, _ = Token.objects.get_or_create(user=user)
         AuditLog.objects.create(
             user=user, action='user_login',
-            description=f'Admin login: {user.username}',
+            description=f'User login: {user.username} ({getattr(user, "role", "viewer")})',
             ip_address=request.META.get('REMOTE_ADDR')
         )
         return Response({
             'token': token.key,
             'id': user.id,
             'username': user.username,
-            'role': getattr(user, 'role', 'admin'),
-            'is_admin': True,
+            'email': getattr(user, 'email', ''),
+            'role': getattr(user, 'role', 'viewer'),
+            'is_admin': is_admin,
         })
 
 

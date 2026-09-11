@@ -88,7 +88,7 @@ const METRICS = [
     { label: 'Youth Focus', sub: 'Targeted Demographics (15–35 yrs)' },
 ];
 
-function HomePage() {
+function HomePage({ user, onLogout }) {
     const navigate = useNavigate();
 
     // Modal state for Authentication (Login / Sign Up / Reset)
@@ -131,11 +131,22 @@ function HomePage() {
         setLoading(true);
         try {
             const res = await axios.post(`${API_BASE}/auth/login/`, loginForm, { withCredentials: true });
-            localStorage.setItem('authToken', res.data.token || '');
-            handleAuthMessage('success', 'Login successful! Redirecting to Admin panel...');
+            const userData = res.data;
+            if (userData.token) {
+                localStorage.setItem('token', userData.token);
+            }
+            localStorage.setItem('user', JSON.stringify(userData));
+
+            const isSystemAdmin = userData.is_admin;
+            const targetMessage = isSystemAdmin
+                ? 'Login successful! Redirecting to Admin Dashboard...'
+                : 'Login successful! Redirecting to Dashboard...';
+            const targetPath = isSystemAdmin ? '/admin' : '/dashboard';
+
+            handleAuthMessage('success', targetMessage);
             setTimeout(() => {
-                window.location.href = '/admin';
-            }, 600);
+                window.location.href = targetPath;
+            }, 500);
         } catch (error) {
             const message = error.response?.data?.detail || error.response?.data?.error || 'Login failed. Please verify credentials.';
             handleAuthMessage('error', message);
@@ -285,24 +296,51 @@ function HomePage() {
                             >
                                 Compare
                             </Button>
-                            <Button
-                                variant="contained"
-                                size="small"
-                                startIcon={<Lock fontSize="small" />}
-                                onClick={() => handleOpenAuth(0)}
-                                sx={{
-                                    bgcolor: '#2563eb',
-                                    px: 2.5,
-                                    py: 0.8,
-                                    borderRadius: 2,
-                                    fontWeight: 600,
-                                    textTransform: 'none',
-                                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-                                    '&:hover': { bgcolor: '#1d4ed8' },
-                                }}
-                            >
-                                Sign In / Portal
-                            </Button>
+                            {user?.is_admin && (
+                                <Button
+                                    variant="text"
+                                    sx={{ color: '#a5d6a7', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
+                                    onClick={() => navigate('/admin')}
+                                >
+                                    Admin Dashboard
+                                </Button>
+                            )}
+                            {!user ? (
+                                <Button
+                                    variant="contained"
+                                    size="small"
+                                    startIcon={<Lock fontSize="small" />}
+                                    onClick={() => navigate('/login')}
+                                    sx={{
+                                        bgcolor: '#2563eb',
+                                        px: 2.5,
+                                        py: 0.8,
+                                        borderRadius: 2,
+                                        fontWeight: 600,
+                                        textTransform: 'none',
+                                        boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
+                                        '&:hover': { bgcolor: '#1d4ed8' },
+                                    }}
+                                >
+                                    Sign In / Portal
+                                </Button>
+                            ) : (
+                                <Stack direction="row" spacing={1} alignItems="center">
+                                    <Chip
+                                        label={`${user.username} (${user.is_admin ? 'Admin' : 'User'})`}
+                                        size="small"
+                                        sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
+                                    />
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={onLogout}
+                                        sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.4)' }}
+                                    >
+                                        Logout
+                                    </Button>
+                                </Stack>
+                            )}
                         </Stack>
                     </Stack>
                 </Container>
