@@ -48,27 +48,42 @@ class MigrationRiskModel:
                 health_data = location.healthcare_data.order_by('-year').first()
                 infra_data = location.infrastructure_data.order_by('-year').first()
             
+            def get_val(obj, attr, default):
+                if obj is None:
+                    return default
+                val = getattr(obj, attr, None)
+                return default if val is None else float(val)
+
+            def get_ratio(obj, num_attr, den_attr, default=0.2):
+                if obj is None:
+                    return default
+                num = getattr(obj, num_attr, None)
+                den = getattr(obj, den_attr, None)
+                if num is None or den is None or float(den) == 0:
+                    return default
+                return float(num) / float(den)
+
             features = {
-                'youth_percentage': pop_data.youth_percentage if pop_data else 20.0,
-                'population_density': pop_data.population_density if pop_data else 250.0,
-                'urban_population_ratio': (pop_data.urban_population / pop_data.total_population) if pop_data and pop_data.total_population else 0.2,
-                'migration_rate': mig_data.migration_rate if mig_data else 5.0,
-                'migration_intent_percentage': mig_data.migration_intent_percentage if mig_data else 30.0,
-                'unemployment_rate': emp_data.unemployment_rate if emp_data else 15.0,
-                'youth_unemployment_rate': emp_data.youth_unemployment_rate if emp_data else 25.0,
-                'poverty_rate': emp_data.poverty_rate if emp_data else 50.0,
-                'job_opportunities_index': emp_data.job_opportunities_index if emp_data else 35.0,
-                'literacy_rate': edu_data.literacy_rate if edu_data else 70.0,
-                'youth_literacy_rate': edu_data.youth_literacy_rate if edu_data else 80.0,
-                'school_enrollment_rate': edu_data.school_enrollment_rate if edu_data else 80.0,
-                'education_access_index': edu_data.education_access_index if edu_data else 55.0,
-                'healthcare_access_index': health_data.healthcare_access_index if health_data else 45.0,
-                'distance_to_nearest_hospital': health_data.distance_to_nearest_hospital if health_data else 15.0,
-                'electricity_coverage': infra_data.electricity_coverage if infra_data else 25.0,
-                'internet_coverage': infra_data.internet_coverage if infra_data else 10.0,
-                'water_access_rate': infra_data.water_access_rate if infra_data else 65.0,
-                'infrastructure_gap_index': infra_data.infrastructure_gap_index if infra_data else 65.0,
-                'road_density': infra_data.road_density if infra_data else 0.3,
+                'youth_percentage': get_val(pop_data, 'youth_percentage', 20.0),
+                'population_density': get_val(pop_data, 'population_density', 250.0),
+                'urban_population_ratio': get_ratio(pop_data, 'urban_population', 'total_population', 0.2),
+                'migration_rate': get_val(mig_data, 'migration_rate', 5.0),
+                'migration_intent_percentage': get_val(mig_data, 'migration_intent_percentage', 30.0),
+                'unemployment_rate': get_val(emp_data, 'unemployment_rate', 15.0),
+                'youth_unemployment_rate': get_val(emp_data, 'youth_unemployment_rate', 25.0),
+                'poverty_rate': get_val(emp_data, 'poverty_rate', 50.0),
+                'job_opportunities_index': get_val(emp_data, 'job_opportunities_index', 35.0),
+                'literacy_rate': get_val(edu_data, 'literacy_rate', 70.0),
+                'youth_literacy_rate': get_val(edu_data, 'youth_literacy_rate', 80.0),
+                'school_enrollment_rate': get_val(edu_data, 'school_enrollment_rate', 80.0),
+                'education_access_index': get_val(edu_data, 'education_access_index', 55.0),
+                'healthcare_access_index': get_val(health_data, 'healthcare_access_index', 45.0),
+                'distance_to_nearest_hospital': get_val(health_data, 'distance_to_nearest_hospital', 15.0),
+                'electricity_coverage': get_val(infra_data, 'electricity_coverage', 25.0),
+                'internet_coverage': get_val(infra_data, 'internet_coverage', 10.0),
+                'water_access_rate': get_val(infra_data, 'water_access_rate', 65.0),
+                'infrastructure_gap_index': get_val(infra_data, 'infrastructure_gap_index', 65.0),
+                'road_density': get_val(infra_data, 'road_density', 0.3),
             }
             
             # Ensure no None values

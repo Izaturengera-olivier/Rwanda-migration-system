@@ -92,10 +92,7 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
             year = int(year)
 
         def get_or_none(model, **kwargs):
-            try:
-                return model.objects.get(**kwargs)
-            except model.DoesNotExist:
-                return None
+            return model.objects.filter(**kwargs).order_by('-id').first()
 
         population = get_or_none(PopulationData, location=location, year=year)
         migration = get_or_none(MigrationData, location=location, year=year)
@@ -184,6 +181,15 @@ class DatasetViewSet(viewsets.ModelViewSet):
             return Response(result)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        from django.http import FileResponse
+        dataset = self.get_object()
+        if not dataset.file_path or not os.path.exists(dataset.file_path):
+            return Response({'error': 'Dataset file does not exist on server.'}, status=status.HTTP_404_NOT_FOUND)
+        filename = os.path.basename(dataset.file_path)
+        return FileResponse(open(dataset.file_path, 'rb'), as_attachment=True, filename=filename)
 
 
 class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
@@ -402,6 +408,11 @@ class UserViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = request.data.copy()
         password = data.pop('password', None)
+        if isinstance(password, list):
+            password = password[0] if password else None
+        if isinstance(password, str) and not password.strip():
+            password = None
+
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -413,7 +424,7 @@ class UserViewSet(viewsets.ModelViewSet):
             action='user_updated',
             entity_type='User',
             entity_id=user.id,
-            description=f"Updated user: {user.username}"
+            description=f"Updated profile for user: {user.username}"
         )
         return Response(serializer.data)
 

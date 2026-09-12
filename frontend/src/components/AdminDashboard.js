@@ -37,6 +37,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import SecurityIcon from "@mui/icons-material/Security";
 import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import DownloadIcon from "@mui/icons-material/Download";
+import EditIcon from "@mui/icons-material/Edit";
 import { Bar } from "react-chartjs-2";
 import axios from "axios";
 
@@ -87,9 +89,11 @@ function AdminDashboard({ adminUser }) {
   const [trainDialog, setTrainDialog] = useState(false);
   const [qualityDialog, setQualityDialog] = useState(false);
   const [userDialog, setUserDialog] = useState(false);
+  const [editUserDialog, setEditUserDialog] = useState(false);
   const [deleteUserDialog, setDeleteUserDialog] = useState(null);
 
   const [selectedDataset, setSelectedDataset] = useState(null);
+  const [editingUser, setEditingUser] = useState(null);
 
   // Forms
   const [uploadForm, setUploadForm] = useState({
@@ -104,6 +108,15 @@ function AdminDashboard({ adminUser }) {
     dataset_id: "",
   });
   const [userForm, setUserForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+    role: "viewer",
+    first_name: "",
+    last_name: "",
+    organization: "",
+  });
+  const [editUserForm, setEditUserForm] = useState({
     username: "",
     email: "",
     password: "",
@@ -256,6 +269,45 @@ function AdminDashboard({ adminUser }) {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadDataset = (dataset) => {
+    try {
+      const downloadUrl = dataset.download_url
+        ? `${API_BASE.replace(/\/api$/, "")}${dataset.download_url}`
+        : `${API_BASE}/datasets/${dataset.id}/download/`;
+
+      axios({
+        url: downloadUrl,
+        method: "GET",
+        responseType: "blob",
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      })
+        .then((response) => {
+          const url = window.URL.createObjectURL(new Blob([response.data]));
+          const link = document.createElement("a");
+          link.href = url;
+          const filename =
+            dataset.name &&
+            (dataset.name.endsWith(".csv") || dataset.name.endsWith(".xlsx"))
+              ? dataset.name
+              : `${dataset.name || "dataset"}.csv`;
+          link.setAttribute("download", filename);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          window.URL.revokeObjectURL(url);
+          showSuccess(`Downloading dataset "${dataset.name}"...`);
+        })
+        .catch((err) => {
+          setError(
+            err.response?.data?.error || "Failed to download dataset file.",
+          );
+        });
+    } catch (err) {
+      setError("Failed to download dataset.");
     }
   };
 
@@ -425,6 +477,53 @@ function AdminDashboard({ adminUser }) {
         err.response?.data?.detail ||
           err.response?.data?.error ||
           "Failed to delete user",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenEditUser = (user) => {
+    setEditingUser(user);
+    setEditUserForm({
+      username: user.username || "",
+      email: user.email || "",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      organization: user.organization || "",
+      role: user.role || "viewer",
+      password: "",
+    });
+    setEditUserDialog(true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+    if (!editUserForm.username || !editUserForm.email) {
+      setError("Username and email are required.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const payload = { ...editUserForm };
+      if (!payload.password) delete payload.password;
+
+      await axios.patch(`${API_BASE}/users/${editingUser.id}/`, payload, {
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      });
+      setEditUserDialog(false);
+      setEditingUser(null);
+      fetchUsers();
+      fetchAuditLogs();
+      showSuccess(`Profile for user "${editUserForm.username}" updated successfully.`);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.username?.[0] ||
+          err.response?.data?.email?.[0] ||
+          "Failed to update user profile",
       );
     } finally {
       setLoading(false);
@@ -602,28 +701,41 @@ function AdminDashboard({ adminUser }) {
                         {new Date(dataset.upload_date).toLocaleDateString()}
                       </TableCell>
                       <TableCell>
-                        {dataset.status === "uploaded" && (
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            onClick={() => handleProcess(dataset.id)}
-                          >
-                            Validate & Process
-                          </Button>
-                        )}
-                        {(dataset.status === "processed" ||
-                          dataset.status === "active") && (
-                          <Button
-                            size="small"
-                            variant="text"
-                            onClick={() => {
-                              setSelectedDataset(dataset);
-                              setQualityDialog(true);
-                            }}
-                          >
-                            Review Quality
-                          </Button>
-                        )}
+                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                          <Tooltip title="Download Dataset File">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="info"
+                              startIcon={<DownloadIcon fontSize="small" />}
+                              onClick={() => handleDownloadDataset(dataset)}
+                            >
+                              Download
+                            </Button>
+                          </Tooltip>
+                          {dataset.status === "uploaded" && (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => handleProcess(dataset.id)}
+                            >
+                              Validate & Process
+                            </Button>
+                          )}
+                          {(dataset.status === "processed" ||
+                            dataset.status === "active") && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              onClick={() => {
+                                setSelectedDataset(dataset);
+                                setQualityDialog(true);
+                              }}
+                            >
+                              Review Quality
+                            </Button>
+                          )}
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -826,6 +938,19 @@ function AdminDashboard({ adminUser }) {
                             justifyContent: "flex-end",
                           }}
                         >
+                          {/* Edit Profile */}
+                          <Tooltip title="Edit User Profile">
+                            <Button
+                              size="small"
+                              color="info"
+                              variant="outlined"
+                              onClick={() => handleOpenEditUser(u)}
+                              startIcon={<EditIcon fontSize="small" />}
+                            >
+                              Edit Profile
+                            </Button>
+                          </Tooltip>
+
                           {/* Activate / Deactivate */}
                           <Tooltip
                             title={
@@ -1151,6 +1276,111 @@ function AdminDashboard({ adminUser }) {
             disabled={loading}
           >
             Create User
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* EDIT USER DIALOG */}
+      <Dialog
+        open={editUserDialog}
+        onClose={() => setEditUserDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Edit User Profile</DialogTitle>
+        <DialogContent
+          sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}
+        >
+          <TextField
+            label="Username"
+            value={editUserForm.username}
+            onChange={(e) =>
+              setEditUserForm({ ...editUserForm, username: e.target.value })
+            }
+            required
+          />
+          <TextField
+            label="Email Address"
+            type="email"
+            value={editUserForm.email}
+            onChange={(e) =>
+              setEditUserForm({ ...editUserForm, email: e.target.value })
+            }
+            required
+          />
+          <TextField
+            label="New Password (leave blank to keep current)"
+            type="password"
+            value={editUserForm.password}
+            onChange={(e) =>
+              setEditUserForm({ ...editUserForm, password: e.target.value })
+            }
+            helperText="Enter a new password only if you wish to reset it."
+          />
+          <FormControl fullWidth>
+            <InputLabel>System Role</InputLabel>
+            <Select
+              value={editUserForm.role}
+              label="System Role"
+              onChange={(e) =>
+                setEditUserForm({ ...editUserForm, role: e.target.value })
+              }
+            >
+              <MenuItem value="admin">Administrator (Full Access)</MenuItem>
+              <MenuItem value="researcher">
+                Researcher (Data Upload/Processing)
+              </MenuItem>
+              <MenuItem value="viewer">Viewer (Read Only)</MenuItem>
+            </Select>
+          </FormControl>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="First Name"
+                value={editUserForm.first_name}
+                onChange={(e) =>
+                  setEditUserForm({
+                    ...editUserForm,
+                    first_name: e.target.value,
+                  })
+                }
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                fullWidth
+                label="Last Name"
+                value={editUserForm.last_name}
+                onChange={(e) =>
+                  setEditUserForm({
+                    ...editUserForm,
+                    last_name: e.target.value,
+                  })
+                }
+              />
+            </Grid>
+          </Grid>
+          <TextField
+            label="Organization"
+            value={editUserForm.organization}
+            onChange={(e) =>
+              setEditUserForm({
+                ...editUserForm,
+                organization: e.target.value,
+              })
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditUserDialog(false)}>Cancel</Button>
+          <Button
+            onClick={handleUpdateUser}
+            variant="contained"
+            color="primary"
+            disabled={loading}
+          >
+            Save Changes
           </Button>
         </DialogActions>
       </Dialog>

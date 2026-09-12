@@ -132,9 +132,29 @@ function Dashboard() {
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {riskDistChart && (
           <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Risk Distribution</Typography>
-              <Doughnut data={riskDistChart} options={{ plugins: { legend: { position: 'bottom' } }, maintainAspectRatio: true }} />
+            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%' }}>
+              <Typography variant="h6" align="center" gutterBottom sx={{ width: '100%', fontWeight: 600 }}>
+                Risk Distribution
+              </Typography>
+              <Box sx={{ width: '100%', maxWidth: 280, display: 'flex', justifyContent: 'center', alignItems: 'center', my: 'auto', py: 1 }}>
+                <Doughnut
+                  data={riskDistChart}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                      legend: {
+                        position: 'bottom',
+                        align: 'center',
+                        labels: {
+                          boxWidth: 14,
+                          padding: 12,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </Box>
             </Paper>
           </Grid>
         )}

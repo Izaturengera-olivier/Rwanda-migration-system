@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from datetime import datetime
+from django.utils import timezone
 import os
 from django.core.files.storage import default_storage
 from django.conf import settings
@@ -95,26 +96,40 @@ class DataProcessor:
     
     @staticmethod
     def get_or_create_location(district, sector, province=None):
-        """Get or create a location record."""
-        try:
-            # Try to find existing location
-            location = Location.objects.get(
-                district=district,
-                sector=sector,
-                location_type='sector'
-            )
+        """Get or create a location record safely."""
+        import uuid
+        district_str = "" if (pd.isna(district) or str(district).lower() == "nan") else str(district).strip()
+        sector_str = "" if (pd.isna(sector) or str(sector).lower() == "nan") else str(sector).strip()
+        province_str = "" if (pd.isna(province) or str(province).lower() == "nan") else str(province).strip()
+
+        if not district_str:
+            district_str = "Unknown"
+
+        # Try to find matching location
+        if sector_str:
+            location = Location.objects.filter(district__iexact=district_str, sector__iexact=sector_str).first()
+        else:
+            location = Location.objects.filter(district__iexact=district_str, location_type='district').first()
+            if not location:
+                location = Location.objects.filter(district__iexact=district_str).first()
+        
+        if location:
             return location
-        except Location.DoesNotExist:
-            # Create new location
-            location = Location.objects.create(
-                name=f"{district} - {sector}" if sector else district,
-                location_type='sector' if sector else 'district',
-                province=province or '',
-                district=district,
-                sector=sector or '',
-                is_study_area=district in Location.STUDY_DISTRICTS
-            )
-            return location
+
+        # Generate unique location code
+        code_prefix = f"RW-{district_str[:3].upper()}"
+        code = f"{code_prefix}-{uuid.uuid4().hex[:6].upper()}"
+
+        location = Location.objects.create(
+            name=f"{district_str} - {sector_str}" if sector_str else district_str,
+            location_type='sector' if sector_str else 'district',
+            province=province_str,
+            district=district_str,
+            sector=sector_str,
+            code=code,
+            is_study_area=district_str in Location.STUDY_DISTRICTS
+        )
+        return location
     
     @staticmethod
     def process_population_data(file_path, dataset, year):
@@ -399,25 +414,47 @@ def process_dataset(dataset_id):
             'infrastructure': DataProcessor.process_infrastructure_data,
         }
         
-        processor = processor_map.get(dataset.dataset_type)
-        if processor:
-            result = processor(dataset.file_path, dataset, year)
-            
-            dataset.status = 'processed'
-            dataset.processed_date = datetime.now()
-            dataset.processing_log = f"Processed {result['processed']} records"
-            if result['errors']:
-                dataset.processing_log += f"\nErrors: {len(result['errors'])}"
-            
-            dataset.save()
-            
-            return {
-                'success': True,
-                'processed': result['processed'],
-                'errors': result['errors']
-            }
+        processors_to_run = []
+        if dataset.dataset_type in processor_map:
+            processors_to_run.append((dataset.dataset_type, processor_map[dataset.dataset_type]))
         else:
-            return {'success': False, 'error': 'Unsupported dataset type'}
+            # Auto-detect matching processors based on file columns
+            try:
+                df_headers = pd.read_csv(dataset.file_path, nrows=1).columns if dataset.file_path.endswith('.csv') else pd.read_excel(dataset.file_path, nrows=1).columns
+                for dtype, req_cols in DataValidator.REQUIRED_COLUMNS.items():
+                    if all(c in df_headers for c in req_cols):
+                        processors_to_run.append((dtype, processor_map[dtype]))
+            except Exception as read_err:
+                logger.warning(f"Could not inspect headers for auto-detection: {read_err}")
+            
+            # If still none matched, fallback to running all processors
+            if not processors_to_run:
+                for dtype, proc in processor_map.items():
+                    processors_to_run.append((dtype, proc))
+
+        total_processed = 0
+        all_errors = []
+        for dtype, proc in processors_to_run:
+            try:
+                res = proc(dataset.file_path, dataset, year)
+                total_processed += res.get('processed', 0)
+                if res.get('errors'):
+                    all_errors.extend(res['errors'])
+            except Exception as proc_err:
+                logger.warning(f"Processor {dtype} error: {proc_err}")
+
+        dataset.status = 'processed'
+        dataset.processed_date = timezone.now()
+        dataset.processing_log = f"Processed {total_processed} records"
+        if all_errors:
+            dataset.processing_log += f"\nErrors: {len(all_errors)}"
+        dataset.save()
+
+        return {
+            'success': True,
+            'processed': total_processed,
+            'errors': all_errors
+        }
             
     except Exception as e:
         logger.error(f"Error processing dataset: {str(e)}")

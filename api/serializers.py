@@ -25,6 +25,7 @@ class LocationSerializer(serializers.ModelSerializer):
 
 class DatasetSerializer(serializers.ModelSerializer):
     uploaded_by_name = serializers.CharField(source='uploaded_by.username', read_only=True)
+    download_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Dataset
@@ -32,9 +33,13 @@ class DatasetSerializer(serializers.ModelSerializer):
             'id', 'name', 'dataset_type', 'year', 'version', 'source',
             'uploaded_by', 'uploaded_by_name', 'file_path', 'file_size',
             'row_count', 'status', 'validation_errors', 'processing_log',
-            'upload_date', 'processed_date', 'is_active', 'metadata'
+            'upload_date', 'processed_date', 'is_active', 'metadata',
+            'download_url'
         ]
         read_only_fields = ['upload_date', 'processed_date']
+
+    def get_download_url(self, obj):
+        return f"/api/datasets/{obj.id}/download/"
 
 
 class PopulationDataSerializer(serializers.ModelSerializer):
