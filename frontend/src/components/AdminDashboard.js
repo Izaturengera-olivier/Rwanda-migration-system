@@ -91,6 +91,7 @@ function AdminDashboard({ adminUser }) {
   const [userDialog, setUserDialog] = useState(false);
   const [editUserDialog, setEditUserDialog] = useState(false);
   const [deleteUserDialog, setDeleteUserDialog] = useState(null);
+  const [deleteDatasetDialog, setDeleteDatasetDialog] = useState(null);
 
   const [selectedDataset, setSelectedDataset] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
@@ -308,6 +309,30 @@ function AdminDashboard({ adminUser }) {
         });
     } catch (err) {
       setError("Failed to download dataset.");
+    }
+  };
+
+  const handleDeleteDataset = async (dataset) => {
+    if (!dataset) return;
+    setLoading(true);
+    setError(null);
+    try {
+      await axios.delete(`${API_BASE}/datasets/${dataset.id}/`, {
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      });
+      setDeleteDatasetDialog(null);
+      fetchDatasets();
+      fetchAuditLogs();
+      showSuccess(`Dataset "${dataset.name}" deleted successfully.`);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail ||
+          err.response?.data?.error ||
+          "Failed to delete dataset",
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -735,6 +760,17 @@ function AdminDashboard({ adminUser }) {
                               Review Quality
                             </Button>
                           )}
+                          <Tooltip title="Delete Dataset">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="error"
+                              startIcon={<DeleteIcon fontSize="small" />}
+                              onClick={() => setDeleteDatasetDialog(dataset)}
+                            >
+                              Delete
+                            </Button>
+                          </Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -1507,6 +1543,36 @@ function AdminDashboard({ adminUser }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setQualityDialog(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* DELETE DATASET DIALOG */}
+      <Dialog
+        open={Boolean(deleteDatasetDialog)}
+        onClose={() => setDeleteDatasetDialog(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Confirm Delete Dataset</DialogTitle>
+        <DialogContent>
+          <Typography variant="body1">
+            Are you sure you want to delete dataset{" "}
+            <strong>"{deleteDatasetDialog?.name}"</strong> ({deleteDatasetDialog?.year})?
+          </Typography>
+          <Alert severity="error" sx={{ mt: 2 }}>
+            This will permanently delete the uploaded dataset file and remove its database records.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDatasetDialog(null)}>Cancel</Button>
+          <Button
+            onClick={() => handleDeleteDataset(deleteDatasetDialog)}
+            variant="contained"
+            color="error"
+            disabled={loading}
+          >
+            Delete Dataset
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>

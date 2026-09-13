@@ -97,6 +97,39 @@ class MigrationRiskModel:
             logger.error(f"Error preparing features for location {location_id}: {str(e)}")
             return None
     
+    @staticmethod
+    def compute_risk_label(features):
+        """Compute continuous composite risk score (0.0 to 1.0) and categorical label (0 to 3)."""
+        if not features:
+            return 0.5, 1
+        
+        y_unemp = float(features.get('youth_unemployment_rate', 25.0)) / 100.0
+        poverty = float(features.get('poverty_rate', 50.0)) / 100.0
+        mig_intent = float(features.get('migration_intent_percentage', 30.0)) / 100.0
+        infra_gap = float(features.get('infrastructure_gap_index', 65.0)) / 100.0
+        job_opp = float(features.get('job_opportunities_index', 35.0)) / 100.0
+        elec_cov = float(features.get('electricity_coverage', 25.0)) / 100.0
+
+        risk_index = (
+            min(max(y_unemp, 0.0), 1.0) * 0.25 +
+            min(max(poverty, 0.0), 1.0) * 0.25 +
+            min(max(mig_intent, 0.0), 1.0) * 0.20 +
+            min(max(infra_gap, 0.0), 1.0) * 0.15 +
+            (1.0 - min(max(job_opp, 0.0), 1.0)) * 0.10 +
+            (1.0 - min(max(elec_cov, 0.0), 1.0)) * 0.05
+        )
+
+        if risk_index < 0.40:
+            label = 0  # low
+        elif risk_index < 0.55:
+            label = 1  # moderate
+        elif risk_index < 0.70:
+            label = 2  # high
+        else:
+            label = 3  # very_high
+
+        return float(risk_index), label
+
     def load_training_data(self, year=2023):
         """Load training data for a specific year."""
         locations = Location.objects.filter(is_study_area=True)
@@ -107,7 +140,8 @@ class MigrationRiskModel:
             features = self.prepare_features(location.id, year)
             if features:
                 features_list.append(features)
-                labels.append(0)  # Baseline label
+                _, label = self.compute_risk_label(features)
+                labels.append(label)
         
         if not features_list:
             return None, None
@@ -131,11 +165,18 @@ class MigrationRiskModel:
         # Scale features
         X = self.scaler.fit_transform(df)
         y = labels
-        
-        # Split data
-        X_train, X_test, y_train, y_test = train_test_split(
-            X, y, test_size=0.2, random_state=42, stratify=y
-        )
+
+        # Safe train/test split based on sample size and class distribution
+        unique_classes, counts = np.unique(y, return_counts=True)
+        min_class_count = np.min(counts) if len(counts) > 0 else 0
+        use_stratify = y if (len(unique_classes) > 1 and min_class_count >= 2 and len(y) >= 5) else None
+
+        if len(y) < 4:
+            X_train, X_test, y_train, y_test = X, X, y, y
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=use_stratify
+            )
         
         # Select algorithm
         if algorithm == 'random_forest':
@@ -193,42 +234,43 @@ class MigrationRiskModel:
         if features is None:
             raise ValueError(f"Cannot prepare features for location {location_id}")
         
-        # Ensure features are in correct order
-        feature_values = [features[col] for col in self.feature_columns]
-        X = self.scaler.transform([feature_values])
+        # Ensure features are in correct order as DataFrame to match scaler names
+        feature_df = pd.DataFrame([features], columns=self.feature_columns)
+        X = self.scaler.transform(feature_df)
         
         # Get prediction probabilities
         probabilities = self.model.predict_proba(X)[0]
-        
-        # Map probabilities to risk categories
+        model_classes = getattr(self.model, 'classes_', np.array([0, 1, 2, 3]))
+
+        prob_map = {0: 0.0, 1: 0.0, 2: 0.0, 3: 0.0}
+        for cls, prob in zip(model_classes, probabilities):
+            prob_map[int(cls)] = float(prob)
+
+        prob_low = prob_map[0]
+        prob_moderate = prob_map[1]
+        prob_high = prob_map[2]
+        prob_very_high = prob_map[3]
+
+        raw_score = (prob_low * 0.15) + (prob_moderate * 0.45) + (prob_high * 0.70) + (prob_very_high * 0.90)
+        feature_risk_score, feature_label = self.compute_risk_label(features)
+
         risk_categories = ['low', 'moderate', 'high', 'very_high']
-        
-        # For now, use simple threshold-based classification
-        # In production, this should be based on model calibration
-        if len(probabilities) >= 4:
-            category_idx = np.argmax(probabilities)
-            risk_category = risk_categories[category_idx]
-            risk_score = probabilities[category_idx]
+        if max(prob_low, prob_moderate, prob_high, prob_very_high) == 0:
+            risk_score = feature_risk_score
+            risk_category = risk_categories[feature_label]
         else:
-            # Fallback for binary classification
-            risk_score = probabilities[1] if len(probabilities) > 1 else probabilities[0]
-            if risk_score < 0.25:
-                risk_category = 'low'
-            elif risk_score < 0.5:
-                risk_category = 'moderate'
-            elif risk_score < 0.75:
-                risk_category = 'high'
-            else:
-                risk_category = 'very_high'
-        
+            risk_score = raw_score
+            best_cls = np.argmax([prob_low, prob_moderate, prob_high, prob_very_high])
+            risk_category = risk_categories[best_cls]
+
         return {
-            'risk_score': float(risk_score),
+            'risk_score': round(float(risk_score), 4),
             'risk_category': risk_category,
             'probabilities': {
-                'low': float(probabilities[0]) if len(probabilities) > 0 else 0,
-                'moderate': float(probabilities[1]) if len(probabilities) > 1 else 0,
-                'high': float(probabilities[2]) if len(probabilities) > 2 else 0,
-                'very_high': float(probabilities[3]) if len(probabilities) > 3 else 0,
+                'low': round(float(prob_low), 4),
+                'moderate': round(float(prob_moderate), 4),
+                'high': round(float(prob_high), 4),
+                'very_high': round(float(prob_very_high), 4),
             },
             'feature_values': features
         }

@@ -191,6 +191,30 @@ class DatasetViewSet(viewsets.ModelViewSet):
         filename = os.path.basename(dataset.file_path)
         return FileResponse(open(dataset.file_path, 'rb'), as_attachment=True, filename=filename)
 
+    def destroy(self, request, *args, **kwargs):
+        dataset = self.get_object()
+        dataset_id = dataset.id
+        dataset_name = dataset.name
+        file_path = dataset.file_path
+
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete dataset file at {file_path}: {e}")
+
+        self.perform_destroy(dataset)
+
+        AuditLog.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            action='data_deletion',
+            entity_type='Dataset',
+            entity_id=dataset_id,
+            description=f"Deleted dataset: {dataset_name}"
+        )
+
+        return Response({'detail': f'Dataset "{dataset_name}" deleted successfully.'}, status=status.HTTP_200_OK)
+
 
 class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ModelPrediction.objects.select_related('location', 'model_version')
@@ -208,12 +232,22 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def by_district(self, request):
         year = request.query_params.get('year')
+        active_model = ModelVersion.objects.filter(is_active=True).first()
+        latest_model = active_model or ModelVersion.objects.order_by('-training_date', '-id').first()
+
         qs = self.get_queryset().filter(location__location_type='district', location__is_study_area=True)
-        if year:
+        if latest_model:
+            model_qs = qs.filter(model_version=latest_model)
+            if year:
+                model_qs = model_qs.filter(year=year)
+            if model_qs.exists():
+                qs = model_qs
+        elif year:
             qs = qs.filter(year=year)
+
         # Return latest prediction per location
         seen = {}
-        for p in qs:
+        for p in qs.order_by('-prediction_date', '-id'):
             if p.location_id not in seen:
                 seen[p.location_id] = p
         return Response(self.get_serializer(list(seen.values()), many=True).data)
@@ -326,47 +360,51 @@ class DashboardViewSet(viewsets.ViewSet):
     def compare(self, request):
         location_ids = request.query_params.get('locations', '').split(',')
         location_ids = [lid for lid in location_ids if lid]
-        year = request.query_params.get('year')
+        year_param = request.query_params.get('year')
+        year = int(year_param) if year_param and year_param.isdigit() else None
+
         if not location_ids:
             return Response({'error': 'Provide location IDs'}, status=status.HTTP_400_BAD_REQUEST)
 
-        predictions = ModelPrediction.objects.filter(location_id__in=location_ids).select_related('location')
-        if year:
-            predictions = predictions.filter(year=year)
-
+        locations = Location.objects.filter(id__in=location_ids)
         comparison_data = []
-        for pred in predictions:
+        for loc in locations:
+            pred_qs = ModelPrediction.objects.filter(location=loc)
+            if year:
+                pred_qs = pred_qs.filter(year=year)
+            pred = pred_qs.order_by('-year', '-prediction_date', '-id').first()
+
             row = {
-                'location_name': pred.location.name,
-                'risk_score': pred.risk_score,
-                'risk_category': pred.risk_category,
-                'infrastructure_gap_index': 0,
-                'unemployment_rate': 0,
-                'youth_unemployment_rate': 0,
-                'education_access_index': 0,
-                'healthcare_access_index': 0,
+                'location_name': loc.name,
+                'risk_score': pred.risk_score if pred else 0.5,
+                'risk_category': pred.risk_category if pred else 'moderate',
+                'infrastructure_gap_index': 0.0,
+                'unemployment_rate': 0.0,
+                'youth_unemployment_rate': 0.0,
+                'education_access_index': 0.0,
+                'healthcare_access_index': 0.0,
             }
-            try:
-                infra = InfrastructureData.objects.get(location=pred.location, year=pred.year)
-                row['infrastructure_gap_index'] = infra.infrastructure_gap_index or 0
-            except InfrastructureData.DoesNotExist:
-                pass
-            try:
-                emp = EmploymentData.objects.get(location=pred.location, year=pred.year)
-                row['unemployment_rate'] = emp.unemployment_rate or 0
-                row['youth_unemployment_rate'] = emp.youth_unemployment_rate or 0
-            except EmploymentData.DoesNotExist:
-                pass
-            try:
-                edu = EducationData.objects.get(location=pred.location, year=pred.year)
-                row['education_access_index'] = edu.education_access_index or 0
-            except EducationData.DoesNotExist:
-                pass
-            try:
-                health = HealthcareData.objects.get(location=pred.location, year=pred.year)
-                row['healthcare_access_index'] = health.healthcare_access_index or 0
-            except HealthcareData.DoesNotExist:
-                pass
+            target_year = year if year else (pred.year if pred else 2023)
+
+            infra = InfrastructureData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            if infra and infra.infrastructure_gap_index is not None:
+                row['infrastructure_gap_index'] = float(infra.infrastructure_gap_index)
+
+            emp = EmploymentData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            if emp:
+                if emp.unemployment_rate is not None:
+                    row['unemployment_rate'] = float(emp.unemployment_rate)
+                if emp.youth_unemployment_rate is not None:
+                    row['youth_unemployment_rate'] = float(emp.youth_unemployment_rate)
+
+            edu = EducationData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            if edu and edu.education_access_index is not None:
+                row['education_access_index'] = float(edu.education_access_index)
+
+            health = HealthcareData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            if health and health.healthcare_access_index is not None:
+                row['healthcare_access_index'] = float(health.healthcare_access_index)
+
             comparison_data.append(row)
 
         return Response(ComparisonSerializer(comparison_data, many=True).data)

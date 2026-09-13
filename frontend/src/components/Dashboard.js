@@ -185,7 +185,7 @@ function Dashboard() {
           <Typography variant="h6" gutterBottom>Study Districts</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {districts.map(d => {
-              const pred = predictions.find(p => p.location === d.id);
+              const pred = predictions.find(p => String(p.location) === String(d.id) || p.location_name?.toLowerCase() === d.name?.toLowerCase());
               return (
                 <Grid item xs={12} sm={6} md={4} key={d.id}>
                   <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 }, bgcolor: pred ? RISK_BG[pred.risk_category] : 'white' }}

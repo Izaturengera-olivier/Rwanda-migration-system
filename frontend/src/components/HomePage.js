@@ -82,7 +82,7 @@ const QUICK_MODULES = [
 ];
 
 const METRICS = [
-    { label: '30 Districts', sub: 'Nationwide Spatial Coverage' },
+    { label: '6 Districts', sub: 'Study Area Spatial Coverage' },
     { label: '4 Risk Levels', sub: 'Very High to Low Categories' },
     { label: 'Infrastructure', sub: 'Power, Water & Road Gap Tracking' },
     { label: 'Youth Focus', sub: 'Targeted Demographics (15–35 yrs)' },
@@ -406,7 +406,7 @@ function HomePage({ user, onLogout }) {
                                         mx: 'auto',
                                     }}
                                 >
-                                    Monitor vulnerable districts, assess infrastructure deficits, and analyze socio-economic factors driving youth out-migration across all 30 districts of Rwanda.
+                                    Monitor vulnerable districts, assess infrastructure deficits, and analyze socio-economic factors driving youth out-migration across 6 districts of Rwanda.
                                 </Typography>
 
                                 <Stack
