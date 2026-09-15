@@ -39,7 +39,6 @@ import BlockIcon from "@mui/icons-material/Block";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import DownloadIcon from "@mui/icons-material/Download";
 import EditIcon from "@mui/icons-material/Edit";
-import { Bar } from "react-chartjs-2";
 import axios from "axios";
 
 const API_BASE = "http://localhost:8000/api";
@@ -132,6 +131,7 @@ function AdminDashboard({ adminUser }) {
 
   useEffect(() => {
     fetchAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getAuthHeaders = (isMultipart = false) => {

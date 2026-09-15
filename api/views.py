@@ -232,24 +232,45 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def by_district(self, request):
         year = request.query_params.get('year')
+        base_qs = ModelPrediction.objects.select_related('location', 'model_version').filter(
+            location__location_type='district',
+            location__is_study_area=True
+        )
+        if year:
+            base_qs = base_qs.filter(year=year)
+
+        # 1. Try active model predictions
         active_model = ModelVersion.objects.filter(is_active=True).first()
-        latest_model = active_model or ModelVersion.objects.order_by('-training_date', '-id').first()
+        if active_model:
+            active_qs = base_qs.filter(model_version=active_model)
+            if active_qs.exists():
+                seen = {}
+                for p in active_qs.order_by('-prediction_date', '-id'):
+                    if p.location_id not in seen:
+                        seen[p.location_id] = p
+                return Response(self.get_serializer(list(seen.values()), many=True).data)
 
-        qs = self.get_queryset().filter(location__location_type='district', location__is_study_area=True)
-        if latest_model:
-            model_qs = qs.filter(model_version=latest_model)
-            if year:
-                model_qs = model_qs.filter(year=year)
-            if model_qs.exists():
-                qs = model_qs
-        elif year:
-            qs = qs.filter(year=year)
+        # 2. Try latest model with predictions
+        models_with_preds = ModelVersion.objects.filter(
+            predictions__location__location_type='district'
+        ).distinct().order_by('-training_date', '-id')
 
-        # Return latest prediction per location
+        target_model = models_with_preds.first()
+        if target_model:
+            target_qs = base_qs.filter(model_version=target_model)
+            if target_qs.exists():
+                seen = {}
+                for p in target_qs.order_by('-prediction_date', '-id'):
+                    if p.location_id not in seen:
+                        seen[p.location_id] = p
+                return Response(self.get_serializer(list(seen.values()), many=True).data)
+
+        # 3. Fallback to any available district predictions
         seen = {}
-        for p in qs.order_by('-prediction_date', '-id'):
+        for p in base_qs.order_by('-prediction_date', '-id'):
             if p.location_id not in seen:
                 seen[p.location_id] = p
+
         return Response(self.get_serializer(list(seen.values()), many=True).data)
 
     @action(detail=False, methods=['get'])

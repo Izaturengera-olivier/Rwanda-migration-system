@@ -185,7 +185,15 @@ function Dashboard() {
           <Typography variant="h6" gutterBottom>Study Districts</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {districts.map(d => {
-              const pred = predictions.find(p => String(p.location) === String(d.id) || p.location_name?.toLowerCase() === d.name?.toLowerCase());
+              const pred = predictions.find(p => {
+                const locId = typeof p.location === 'object' ? p.location?.id : p.location;
+                const locName = p.location_name || (typeof p.location === 'object' ? p.location?.name : '');
+                return (
+                  String(locId) === String(d.id) ||
+                  String(p.location_id) === String(d.id) ||
+                  (locName && d.name && locName.trim().toLowerCase() === d.name.trim().toLowerCase())
+                );
+              });
               return (
                 <Grid item xs={12} sm={6} md={4} key={d.id}>
                   <Card sx={{ cursor: 'pointer', '&:hover': { boxShadow: 4 }, bgcolor: pred ? RISK_BG[pred.risk_category] : 'white' }}

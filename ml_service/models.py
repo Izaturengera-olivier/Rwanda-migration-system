@@ -378,18 +378,20 @@ def generate_predictions(model_version_id, year, user=None):
             try:
                 pred_data = ml_model.predict(location.id, year)
                 
-                prediction = ModelPrediction.objects.create(
+                prediction, _ = ModelPrediction.objects.update_or_create(
                     location=location,
                     model_version=model_version,
-                    dataset=model_version.training_dataset,
                     year=year,
-                    risk_score=pred_data['risk_score'],
-                    risk_category=pred_data['risk_category'],
-                    probability_low=pred_data['probabilities']['low'],
-                    probability_moderate=pred_data['probabilities']['moderate'],
-                    probability_high=pred_data['probabilities']['high'],
-                    probability_very_high=pred_data['probabilities']['very_high'],
-                    feature_values=pred_data['feature_values']
+                    defaults={
+                        'dataset': model_version.training_dataset,
+                        'risk_score': pred_data['risk_score'],
+                        'risk_category': pred_data['risk_category'],
+                        'probability_low': pred_data['probabilities']['low'],
+                        'probability_moderate': pred_data['probabilities']['moderate'],
+                        'probability_high': pred_data['probabilities']['high'],
+                        'probability_very_high': pred_data['probabilities']['very_high'],
+                        'feature_values': pred_data['feature_values']
+                    }
                 )
                 predictions.append(prediction)
                 

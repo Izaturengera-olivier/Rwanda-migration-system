@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, FormControl, InputLabel, Select, MenuItem,
-  CircularProgress, Alert, Button, Grid, Card, CardContent, Table,
-  TableBody, TableCell, TableContainer, TableHead, TableRow
+  Alert, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import axios from 'axios';
 

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, Paper, FormControl, InputLabel, Select, MenuItem,
-  Button, CircularProgress, Alert, Grid, Card, CardContent, Checkbox,
-  FormControlLabel, TextField
+  Button, Alert, Grid, Checkbox, FormControlLabel
 } from '@mui/material';
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
@@ -70,7 +69,7 @@ function Reports() {
     if (!profileData) return;
 
     const doc = new jsPDF();
-    const { location, population, migration, employment, education, healthcare, infrastructure, prediction } = profileData;
+    const { location, population, employment, education, healthcare, infrastructure, prediction } = profileData;
 
     let yPosition = 20;
 

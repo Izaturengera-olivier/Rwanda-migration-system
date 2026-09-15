@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap, ScaleControl } from "react-leaflet";
 import { useNavigate } from "react-router-dom";
 import {
   Box,
@@ -14,7 +14,7 @@ import {
   Card,
   CardContent,
   LinearProgress,
-  Divider,
+  Chip,
 } from "@mui/material";
 import { Bar } from "react-chartjs-2";
 import axios from "axios";
@@ -70,19 +70,22 @@ function InfrastructureGaps() {
   const navigate = useNavigate();
   const [geoData, setGeoData] = useState(null);
   const [infraData, setInfraData] = useState([]);
-  const [districts, setDistricts] = useState([]);
   const [year, setYear] = useState(2023);
   const [error, setError] = useState(null);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [districtSectors, setDistrictSectors] = useState([]);
+  const [selectedSector, setSelectedSector] = useState(null);
 
   useEffect(() => {
     Promise.all([
-      axios.get(`${API_BASE}/locations/geojson/`, { params: { year } }),
+      axios.get(`${API_BASE}/locations/geojson/`, {
+        params: { year, type: "district" },
+      }),
       axios.get(`${API_BASE}/locations/study-districts/`),
     ])
       .then(([geoRes, distRes]) => {
         setGeoData(geoRes.data);
         const locs = distRes.data.results || distRes.data;
-        setDistricts(locs);
         Promise.all(
           locs.map((d) =>
             axios
@@ -109,6 +112,17 @@ function InfrastructureGaps() {
       );
   }, [year]);
 
+  const fetchSectorsForDistrict = async (districtName) => {
+    try {
+      const response = await axios.get(`${API_BASE}/locations/`, {
+        params: { type: "sector", district: districtName },
+      });
+      setDistrictSectors(response.data.results || response.data);
+    } catch (err) {
+      setDistrictSectors([]);
+    }
+  };
+
   const getFeatureStyle = (feature) => {
     const gap = feature.properties.infrastructure_gap_index || 0;
     return {
@@ -132,7 +146,13 @@ function InfrastructureGaps() {
       { permanent: true, direction: "center", className: "district-map-label" },
     );
     layer.on({
-      click: () => navigate(`/district/${p.id}`),
+      click: () => {
+        setSelectedLocation(p);
+        setSelectedSector(null);
+        if (p.district || p.name) {
+          fetchSectorsForDistrict(p.district || p.name);
+        }
+      },
       mouseover: (e) =>
         e.target.setStyle({ weight: 3, color: "#333", fillOpacity: 0.85 }),
       mouseout: (e) =>
@@ -208,16 +228,47 @@ function InfrastructureGaps() {
       <Grid container spacing={3}>
         {/* Map */}
         <Grid item xs={12} md={7}>
-          <Paper sx={{ height: 500 }}>
+          <Paper sx={{ height: 500, position: "relative" }}>
+            {/* North Arrow / Compass Rose Overlay */}
+            <Box
+              sx={{
+                position: "absolute",
+                top: 16,
+                left: 16,
+                zIndex: 1000,
+                bgcolor: "rgba(255, 255, 255, 0.9)",
+                p: 1,
+                borderRadius: 1,
+                boxShadow: 2,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                pointerEvents: "none",
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M12 2L15 9H9L12 2Z" fill="#e53935" />
+                <path d="M12 22L9 15H15L12 22Z" fill="#9e9e9e" />
+              </svg>
+              <Typography variant="caption" sx={{ fontWeight: "bold", fontSize: "10px", lineHeight: 1 }}>
+                N
+              </Typography>
+            </Box>
+
             <MapContainer
-              style={{ height: "100%", width: "100%" }}
+              style={{ height: "100%", width: "100%", background: "#f8fafc" }}
               center={[-1.9403, 29.8739]}
-              zoom={7}
+              zoom={8.5}
+              minZoom={8}
+              maxZoom={12}
+              maxBounds={[[-2.95, 28.7], [-1.0, 31.05]]}
+              maxBoundsViscosity={1.0}
             >
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution="&copy; OpenStreetMap"
               />
+              <ScaleControl position="bottomright" imperial={false} />
               <MapCenter />
               {geoData?.features?.length > 0 && (
                 <GeoJSON
@@ -229,6 +280,45 @@ function InfrastructureGaps() {
               )}
             </MapContainer>
           </Paper>
+
+          {selectedLocation && (
+            <Paper sx={{ mt: 2, p: 2, borderLeft: "4px solid #0288d1" }}>
+              <Typography variant="subtitle1" fontWeight="bold">
+                {selectedLocation.name} District Infrastructure Profile
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {selectedLocation.province} Province &nbsp;|&nbsp; Gap Index:{" "}
+                <strong>
+                  {selectedLocation.infrastructure_gap_index != null
+                    ? selectedLocation.infrastructure_gap_index.toFixed(1)
+                    : "N/A"}
+                </strong>
+              </Typography>
+
+              {districtSectors.length > 0 && (
+                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid #e0e0e0" }}>
+                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
+                    Select Sector in {selectedLocation.name}:
+                  </Typography>
+                  <Box display="flex" gap={1} flexWrap="wrap">
+                    {districtSectors.map((sec) => (
+                      <Chip
+                        key={sec.id}
+                        label={sec.sector || sec.name}
+                        clickable
+                        size="small"
+                        color={selectedSector?.id === sec.id ? "primary" : "default"}
+                        onClick={() => {
+                          setSelectedSector(sec);
+                          if (sec.id) navigate(`/district/${sec.id}`);
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Box>
+              )}
+            </Paper>
+          )}
         </Grid>
 
         {/* Legend + Summary */}

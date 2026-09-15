@@ -25,7 +25,6 @@ import {
 } from '@mui/material';
 import {
     Close,
-    Map,
     Assessment,
     CompareArrows,
     TrendingUp,
@@ -34,10 +33,7 @@ import {
     Person,
     Shield,
     ArrowForward,
-    Explore,
-    CheckCircleOutline,
     Storage,
-    Group,
 } from '@mui/icons-material';
 import axios from 'axios';
 
