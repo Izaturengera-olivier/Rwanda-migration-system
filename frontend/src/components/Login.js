@@ -16,6 +16,7 @@ import LockIcon from "@mui/icons-material/Lock";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import LockResetIcon from "@mui/icons-material/LockReset";
 import axios from "axios";
+import logo from "../logo.png";
 
 const API_BASE = "http://localhost:8000/api";
 
@@ -200,16 +201,28 @@ function Login({ onLoginSuccess }) {
         sx={{ p: 4, width: { xs: "100%", sm: 440 }, borderRadius: 2 }}
         elevation={4}
       >
-        <Box display="flex" alignItems="center" gap={1.5} mb={2}>
-          <LockIcon color="primary" fontSize="large" />
-          <Box>
-            <Typography variant="h5" fontWeight="bold">
-              Account Access
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Rwanda Rural Youth Migration Risk Mapping System
-            </Typography>
-          </Box>
+        <Box display="flex" flexDirection="column" alignItems="center" textAlign="center" mb={2.5}>
+          <Box
+            component="img"
+            src={logo}
+            alt="Rwanda Youth Migration & Infrastructure Insights Logo"
+            sx={{
+              width: 72,
+              height: 72,
+              objectFit: "contain",
+              borderRadius: "50%",
+              bgcolor: "white",
+              p: 0.5,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              mb: 1.5,
+            }}
+          />
+          <Typography variant="h5" fontWeight="bold">
+            Account Access
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Rwanda Youth Migration & Infrastructure Insights
+          </Typography>
         </Box>
 
         <Tabs

@@ -26,7 +26,7 @@ function Dashboard() {
     Promise.all([
       safe(axios.get(`${API_BASE}/dashboard/`)),
       safe(axios.get(`${API_BASE}/locations/study-districts/`)),
-      safe(axios.get(`${API_BASE}/predictions/by-district/`)),
+      safe(axios.get(`${API_BASE}/predictions/by-district/`).catch(() => axios.get(`${API_BASE}/predictions/by_district/`))),
     ]).then(([statsRes, distRes, predRes]) => {
       if (!statsRes && !distRes) {
         setError('Failed to load dashboard data. Make sure the Django server is running on port 8000.');
@@ -61,6 +61,19 @@ function Dashboard() {
       borderRadius: 4,
     }]
   } : null;
+
+  const riskCategoryBarChart = stats ? {
+    labels: ['Very High', 'High', 'Moderate', 'Low'],
+    datasets: [{
+      label: 'Number of Districts',
+      data: [stats.very_high_risk_count, stats.high_risk_count, stats.moderate_risk_count, stats.low_risk_count],
+      backgroundColor: [RISK_COLORS.very_high, RISK_COLORS.high, RISK_COLORS.moderate, RISK_COLORS.low],
+      borderRadius: 4,
+    }]
+  } : null;
+
+  const barChartData = districtBarChart || riskCategoryBarChart;
+  const barChartTitle = districtBarChart ? 'Risk Score by District' : 'Risk Category Breakdown';
 
   if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>;
 
@@ -131,8 +144,8 @@ function Dashboard() {
       {/* Charts */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         {riskDistChart && (
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%' }}>
+          <Grid item xs={12} md={6}>
+            <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', height: '100%', minHeight: 360 }}>
               <Typography variant="h6" align="center" gutterBottom sx={{ width: '100%', fontWeight: 600 }}>
                 Risk Distribution
               </Typography>
@@ -158,19 +171,24 @@ function Dashboard() {
             </Paper>
           </Grid>
         )}
-        {districtBarChart && (
-          <Grid item xs={12} md={riskDistChart ? 8 : 12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>Risk Score by District</Typography>
-              <Bar data={districtBarChart} options={{
-                responsive: true,
-                plugins: { legend: { display: false } },
-                scales: { y: { beginAtZero: true, max: 100, title: { display: true, text: 'Risk Score (%)' } } }
-              }} />
+        {barChartData && (
+          <Grid item xs={12} md={riskDistChart ? 6 : 12}>
+            <Paper sx={{ p: 3, display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', minHeight: 360 }}>
+              <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 600 }}>
+                {barChartTitle}
+              </Typography>
+              <Box sx={{ width: '100%', flex: 1, display: 'flex', alignItems: 'center', py: 1 }}>
+                <Bar data={barChartData} options={{
+                  responsive: true,
+                  maintainAspectRatio: true,
+                  plugins: { legend: { display: false } },
+                  scales: { y: { beginAtZero: true, max: districtBarChart ? 100 : undefined, title: { display: true, text: districtBarChart ? 'Risk Score (%)' : 'Number of Districts' } } }
+                }} />
+              </Box>
             </Paper>
           </Grid>
         )}
-        {!riskDistChart && !districtBarChart && (
+        {!riskDistChart && !barChartData && (
           <Grid item xs={12}>
             <Alert severity="info">
               No prediction data available yet. An administrator needs to upload datasets and train a model to see risk analysis charts.

@@ -37,6 +37,8 @@ import Reports from "./components/Reports";
 import AdminDashboard from "./components/AdminDashboard";
 import Login from "./components/Login";
 import HomePage from "./components/HomePage";
+import Footer from "./components/Footer";
+import logo from "./logo.png";
 
 const API_BASE = "http://localhost:8000/api";
 
@@ -66,17 +68,37 @@ function NavBar({ user, onLogout }) {
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography
-          variant="h6"
-          sx={{
-            flexGrow: 1,
-            cursor: "pointer",
-            fontSize: { xs: "0.85rem", md: "1.1rem" },
-          }}
+        <Box
+          display="flex"
+          alignItems="center"
+          gap={1.5}
+          sx={{ flexGrow: 1, cursor: "pointer" }}
           onClick={() => navigate("/")}
         >
-          Rwanda Migration Risk Mapping
-        </Typography>
+          <Box
+            component="img"
+            src={logo}
+            alt="Rwanda Youth Migration & Infrastructure Insights Logo"
+            sx={{
+              height: 42,
+              width: 42,
+              objectFit: "contain",
+              borderRadius: "50%",
+              bgcolor: "white",
+              p: 0.3,
+              boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            }}
+          />
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: "0.85rem", md: "1.05rem" },
+            }}
+          >
+            Rwanda Youth Migration & Infrastructure Insights
+          </Typography>
+        </Box>
 
         {isMobile ? (
           <>
@@ -291,15 +313,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>
-      <Box
-        component="footer"
-        sx={{ py: 2, textAlign: "center", bgcolor: "grey.100" }}
-      >
-        <Typography variant="body2" color="text.secondary">
-          Rwanda Rural Youth Migration Risk Mapping System — Decision-support
-          tool. Results do not predict individual migration decisions.
-        </Typography>
-      </Box>
+      <Footer />
     </Box>
   );
 }

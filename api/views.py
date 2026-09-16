@@ -55,13 +55,18 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def geojson(self, request):
         locations = self.get_queryset()
+        active_model = ModelVersion.objects.filter(is_active=True).first()
         features = []
         for loc in locations:
             if loc.geometry_json:
                 try:
                     geometry = json.loads(loc.geometry_json)
-                    # Attach latest prediction data if available
-                    pred = ModelPrediction.objects.filter(location=loc).order_by('-year', '-prediction_date').first()
+                    pred_qs = ModelPrediction.objects.filter(location=loc)
+                    if active_model and pred_qs.filter(model_version=active_model).exists():
+                        pred = pred_qs.filter(model_version=active_model).order_by('-year', '-prediction_date', '-id').first()
+                    else:
+                        pred = pred_qs.order_by('-year', '-prediction_date', '-id').first()
+
                     features.append({
                         "type": "Feature",
                         "geometry": geometry,
@@ -85,22 +90,36 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
     def profile(self, request, pk=None):
         location = self.get_object()
         year = request.query_params.get('year')
-        if not year:
-            pred = ModelPrediction.objects.filter(location=location).order_by('-year').first()
-            year = pred.year if pred else 2023
+        active_model = ModelVersion.objects.filter(is_active=True).first()
+
+        pred_qs = ModelPrediction.objects.filter(location=location)
+        if active_model and pred_qs.filter(model_version=active_model).exists():
+            active_preds = pred_qs.filter(model_version=active_model)
+            if not year:
+                prediction = active_preds.order_by('-year', '-prediction_date', '-id').first()
+            else:
+                prediction = active_preds.filter(year=int(year)).order_by('-prediction_date', '-id').first()
+                if not prediction:
+                    prediction = active_preds.order_by('-year', '-prediction_date', '-id').first()
         else:
-            year = int(year)
+            if not year:
+                prediction = pred_qs.order_by('-year', '-prediction_date', '-id').first()
+            else:
+                prediction = pred_qs.filter(year=int(year)).order_by('-prediction_date', '-id').first()
+                if not prediction:
+                    prediction = pred_qs.order_by('-year', '-prediction_date', '-id').first()
+
+        target_year = prediction.year if prediction else (int(year) if year and str(year).isdigit() else 2023)
 
         def get_or_none(model, **kwargs):
             return model.objects.filter(**kwargs).order_by('-id').first()
 
-        population = get_or_none(PopulationData, location=location, year=year)
-        migration = get_or_none(MigrationData, location=location, year=year)
-        employment = get_or_none(EmploymentData, location=location, year=year)
-        education = get_or_none(EducationData, location=location, year=year)
-        healthcare = get_or_none(HealthcareData, location=location, year=year)
-        infrastructure = get_or_none(InfrastructureData, location=location, year=year)
-        prediction = ModelPrediction.objects.filter(location=location, year=year).order_by('-prediction_date').first()
+        population = get_or_none(PopulationData, location=location, year=target_year)
+        migration = get_or_none(MigrationData, location=location, year=target_year)
+        employment = get_or_none(EmploymentData, location=location, year=target_year)
+        education = get_or_none(EducationData, location=location, year=target_year)
+        healthcare = get_or_none(HealthcareData, location=location, year=target_year)
+        infrastructure = get_or_none(InfrastructureData, location=location, year=target_year)
 
         return Response({
             'location': LocationSerializer(location).data,
@@ -352,14 +371,28 @@ class DashboardViewSet(viewsets.ViewSet):
         try:
             year = request.query_params.get('year')
             active_model = ModelVersion.objects.filter(is_active=True).first()
-            predictions = ModelPrediction.objects.filter(location__is_study_area=True)
+            district_qs = Location.objects.filter(is_study_area=True, location_type='district')
+
+            if active_model:
+                predictions = ModelPrediction.objects.filter(
+                    location__in=district_qs,
+                    model_version=active_model
+                )
+            else:
+                latest_ids = []
+                for loc in district_qs:
+                    lp = ModelPrediction.objects.filter(location=loc).order_by('-year', '-prediction_date', '-id').first()
+                    if lp:
+                        latest_ids.append(lp.id)
+                predictions = ModelPrediction.objects.filter(id__in=latest_ids)
+
             if year:
                 predictions = predictions.filter(year=year)
 
             last_dataset = Dataset.objects.order_by('-upload_date').first()
 
             stats = {
-                'total_locations': Location.objects.filter(is_study_area=True).count(),
+                'total_locations': district_qs.count(),
                 'high_risk_count': predictions.filter(risk_category='high').count(),
                 'moderate_risk_count': predictions.filter(risk_category='moderate').count(),
                 'low_risk_count': predictions.filter(risk_category='low').count(),
@@ -388,9 +421,12 @@ class DashboardViewSet(viewsets.ViewSet):
             return Response({'error': 'Provide location IDs'}, status=status.HTTP_400_BAD_REQUEST)
 
         locations = Location.objects.filter(id__in=location_ids)
+        active_model = ModelVersion.objects.filter(is_active=True).first()
         comparison_data = []
         for loc in locations:
             pred_qs = ModelPrediction.objects.filter(location=loc)
+            if active_model and pred_qs.filter(model_version=active_model).exists():
+                pred_qs = pred_qs.filter(model_version=active_model)
             if year:
                 pred_qs = pred_qs.filter(year=year)
             pred = pred_qs.order_by('-year', '-prediction_date', '-id').first()

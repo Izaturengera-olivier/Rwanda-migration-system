@@ -18,6 +18,7 @@ router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('locations/study-districts/', LocationViewSet.as_view({'get': 'study_districts'}), name='study-districts'),
+    path('predictions/by-district/', PredictionViewSet.as_view({'get': 'by_district'}), name='predictions-by-district'),
     path('', include(router.urls)),
     path('auth/signup/', UserRegistrationView.as_view(), name='api-signup'),
     path('auth/login/', LoginView.as_view(), name='api-login'),

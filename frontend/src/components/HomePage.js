@@ -36,6 +36,7 @@ import {
     Storage,
 } from '@mui/icons-material';
 import axios from 'axios';
+import logo from '../logo.png';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -253,20 +254,21 @@ function HomePage({ user, onLogout }) {
                             sx={{ cursor: 'pointer' }}
                         >
                             <Box
+                                component="img"
+                                src={logo}
+                                alt="Rwanda Youth Migration & Infrastructure Insights Logo"
                                 sx={{
-                                    bgcolor: '#2563eb',
-                                    p: 0.8,
-                                    borderRadius: 2,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    color: 'white',
+                                    height: 42,
+                                    width: 42,
+                                    objectFit: 'contain',
+                                    borderRadius: '50%',
+                                    bgcolor: 'white',
+                                    p: 0.3,
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                                 }}
-                            >
-                                <Shield fontSize="small" />
-                            </Box>
+                            />
                             <Typography variant="h6" fontWeight={700} sx={{ color: 'white', letterSpacing: 0.5, fontSize: { xs: '0.95rem', sm: '1.2rem' } }}>
-                                Rwanda Migration Risk Mapping
+                                Rwanda Youth Migration & Infrastructure Insights
                             </Typography>
                         </Stack>
 
@@ -358,6 +360,27 @@ function HomePage({ user, onLogout }) {
                         <Grid item xs={12} md={10} lg={9}>
                             <Stack spacing={3} alignItems="center" textAlign="center">
                                 <Box
+                                    component="img"
+                                    src={logo}
+                                    alt="Rwanda Youth Migration & Infrastructure Insights Logo"
+                                    sx={{
+                                        width: { xs: 140, sm: 180, md: 220 },
+                                        height: 'auto',
+                                        maxHeight: 220,
+                                        objectFit: 'contain',
+                                        bgcolor: 'white',
+                                        borderRadius: '50%',
+                                        p: 1.5,
+                                        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)',
+                                        border: '4px solid rgba(255, 255, 255, 0.15)',
+                                        transition: 'transform 0.3s ease',
+                                        '&:hover': {
+                                            transform: 'scale(1.03)',
+                                        },
+                                    }}
+                                />
+
+                                <Box
                                     sx={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
@@ -412,25 +435,6 @@ function HomePage({ user, onLogout }) {
                                     alignItems="center"
                                     sx={{ pt: 1 }}
                                 >
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        endIcon={<ArrowForward />}
-                                        onClick={() => navigate('/dashboard')}
-                                        sx={{
-                                            bgcolor: '#2563eb',
-                                            py: 1.6,
-                                            px: 3.5,
-                                            borderRadius: 2.5,
-                                            fontWeight: 700,
-                                            fontSize: '1rem',
-                                            textTransform: 'none',
-                                            boxShadow: '0 8px 24px rgba(37, 99, 235, 0.4)',
-                                            '&:hover': { bgcolor: '#1d4ed8' },
-                                        }}
-                                    >
-                                        Explore Risk Dashboard
-                                    </Button>
 
                                     <Button
                                         variant="outlined"
@@ -834,17 +838,6 @@ function HomePage({ user, onLogout }) {
                 </DialogContent>
             </Dialog>
 
-            {/* Footer */}
-            <Box sx={{ bgcolor: '#0f172a', color: '#94a3b8', py: 4, px: 2, borderTop: '1px solid #1e293b', textAlign: 'center' }}>
-                <Container maxWidth="lg">
-                    <Typography variant="body2" sx={{ mb: 1 }}>
-                        Rwanda Rural Youth Migration Risk Mapping System — Decision Support Tool
-                    </Typography>
-                    <Typography variant="caption" color="#64748b" display="block">
-                        Results and predictive risk models provide aggregate analysis for policy formulation and do not predict individual decisions.
-                    </Typography>
-                </Container>
-            </Box>
         </Box>
     );
 }
