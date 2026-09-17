@@ -9,16 +9,16 @@ class APIEndpointsTest(TestCase):
         self.client = APIClient()
 
         self.district = Location.objects.create(
-            name="Gicumbi",
+            name="Gisagara",
             location_type="district",
-            province="Northern",
-            district="Gicumbi",
-            code="RW-GC-TEST",
+            province="Southern",
+            district="Gisagara",
+            code="RW-GS-TEST",
             is_study_area=True
         )
 
         self.dataset = Dataset.objects.create(
-            name="Gicumbi Sample Data",
+            name="Gisagara Sample Data",
             dataset_type="population",
             year=2023,
             version="1.0",
@@ -65,7 +65,7 @@ class APIEndpointsTest(TestCase):
         response = self.client.get('/api/locations/study-districts/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertTrue(any(d['name'] == 'Gicumbi' for d in data))
+        self.assertTrue(any(d['name'] == 'Gisagara' for d in data))
 
     def test_geojson_endpoint(self):
         response = self.client.get('/api/locations/geojson/')
@@ -77,7 +77,7 @@ class APIEndpointsTest(TestCase):
         response = self.client.get(f'/api/locations/{self.district.id}/profile/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(data['location']['name'], 'Gicumbi')
+        self.assertEqual(data['location']['name'], 'Gisagara')
         self.assertIsNotNone(data['prediction'])
         self.assertEqual(data['prediction']['risk_category'], 'low')
 
@@ -93,7 +93,7 @@ class APIEndpointsTest(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]['location_name'], 'Gicumbi')
+        self.assertEqual(data[0]['location_name'], 'Gisagara')
 
     def test_user_authentication(self):
         response = self.client.post('/api/auth/login/', {

@@ -8,11 +8,8 @@ This system combines socioeconomic, demographic, infrastructure, and geographica
 
 ## Study Areas
 
-The system focuses on six selected rural districts in Rwanda:
-- **Southern Province**: Nyaruguru, Gisagara
-- **Western Province**: Ngororero, Rutsiro
-- **Northern Province**: Gicumbi
-- **Eastern Province**: Kirehe
+The system focuses on Gisagara rural district in Rwanda:
+- **Southern Province**: Gisagara District and its 13 administrative sectors (Gikonko, Gishubi, Kansi, Kibirizi, Kigembe, Mamba, Muganza, Mugombwa, Mukindo, Musha, Ndora, Nyanza, Save)
 
 ## Features
 

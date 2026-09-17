@@ -16,11 +16,19 @@ function Trends() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/locations/study-districts/`)
+    axios.get(`${API_BASE}/locations/`, { params: { type: 'sector', district: 'Gisagara' } })
       .then(res => {
-        const locs = res.data.results || res.data;
-        setLocations(locs);
-        if (locs.length > 0) setSelectedLocation(locs[0].id);
+        let locs = res.data.results || res.data;
+        if (!locs || locs.length === 0) {
+          axios.get(`${API_BASE}/locations/`).then(r => {
+            const fallback = r.data.results || r.data;
+            setLocations(fallback);
+            if (fallback.length > 0) setSelectedLocation(fallback[0].id);
+          });
+        } else {
+          setLocations(locs);
+          if (locs.length > 0) setSelectedLocation(locs[0].id);
+        }
       })
       .catch(() => {});
   }, []);
@@ -49,7 +57,7 @@ function Trends() {
 
   const chartOptions = {
     responsive: true,
-    plugins: { legend: { position: 'top' }, title: { display: true, text: 'Migration Risk Score Over Time' } },
+    plugins: { legend: { position: 'top' }, title: { display: true, text: 'Gisagara Sector Migration Risk Score Over Time' } },
     scales: {
       y: { beginAtZero: true, max: 100, title: { display: true, text: 'Risk Score (%)' } },
       x: { title: { display: true, text: 'Year' } }
@@ -58,15 +66,15 @@ function Trends() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>Historical Trends</Typography>
+      <Typography variant="h4" gutterBottom>Historical Sector Trends</Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        View migration risk changes over available years
+        View migration risk changes over available years (2021–2023) for sectors in Gisagara district
       </Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <FormControl sx={{ minWidth: 300 }}>
-          <InputLabel>Select Location</InputLabel>
-          <Select value={selectedLocation} label="Select Location" onChange={(e) => setSelectedLocation(e.target.value)}>
+          <InputLabel>Select Sector</InputLabel>
+          <Select value={selectedLocation} label="Select Sector" onChange={(e) => setSelectedLocation(e.target.value)}>
             {locations.map(loc => (
               <MenuItem key={loc.id} value={loc.id}>{loc.name}</MenuItem>
             ))}

@@ -55,7 +55,7 @@ const Footer = () => {
                                 </Typography>
                             </Box>
                             <Typography variant="body2" sx={{ lineHeight: 1.7, color: '#94a3b8' }}>
-                                Advanced spatial decision-support platform tracking rural youth migration drivers, demographic trends, and infrastructure deficits across Rwanda's 6 districts.
+                                Advanced spatial decision-support platform tracking rural youth migration drivers, demographic trends, and infrastructure deficits across Gisagara District sectors.
                             </Typography>
                             <Stack spacing={1} sx={{ pt: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.875rem' }}>

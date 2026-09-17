@@ -1,7 +1,2 @@
 district,sector,province,year,migration_rate,out_migration_count,in_migration_count,net_migration,youth_out_migration,migration_intent_percentage,primary_destination
-Nyaruguru,,Southern,2023,8.5,2788,650,-2100,1950,34.2,Kigali
 Gisagara,,Southern,2023,7.2,2455,600,-1800,1718,29.8,Kigali
-Ngororero,,Western,2023,9.1,3258,758,-2500,2280,38.5,Kigali
-Rutsiro,,Western,2023,7.8,2418,610,-1900,1692,31.5,Kigali
-Gicumbi,,Northern,2023,6.5,2580,980,-1600,1806,26.4,Kigali
-Kirehe,,Eastern,2023,10.2,3519,719,-2800,2463,42.1,Kigali

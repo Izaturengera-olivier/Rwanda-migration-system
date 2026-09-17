@@ -29,8 +29,12 @@ function Reports() {
 
   const fetchLocations = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/locations/study-districts/`);
-      const locs = response.data.results || response.data;
+      const response = await axios.get(`${API_BASE}/locations/`, { params: { type: 'sector', district: 'Gisagara' } });
+      let locs = response.data.results || response.data;
+      if (!locs || locs.length === 0) {
+        const fallback = await axios.get(`${API_BASE}/locations/`);
+        locs = fallback.data.results || fallback.data;
+      }
       setLocations(locs);
       if (locs.length > 0) {
         setSelectedLocation(locs[0].id);

@@ -1,7 +1,2 @@
 district,sector,province,year,primary_schools,secondary_schools,tertiary_institutions,literacy_rate,youth_literacy_rate,school_enrollment_rate,primary_enrollment,secondary_enrollment,student_teacher_ratio,education_access_index
-Nyaruguru,,Southern,2023,48,12,1,71.2,82.4,78.5,18000,9200,38.0,55.0
 Gisagara,,Southern,2023,52,15,1,74.5,85.2,81.2,19300,9700,35.0,60.0
-Ngororero,,Western,2023,55,11,1,68.9,79.6,75.8,17000,8600,41.0,50.0
-Rutsiro,,Western,2023,46,13,1,72.8,83.5,79.4,17500,9000,37.0,57.0
-Gicumbi,,Northern,2023,62,18,2,78.2,88.4,84.6,21200,11000,33.0,66.0
-Kirehe,,Eastern,2023,50,10,1,65.4,76.8,72.1,16500,7800,43.0,45.0

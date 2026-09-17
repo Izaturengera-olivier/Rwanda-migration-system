@@ -56,7 +56,7 @@ const QUICK_MODULES = [
         badge: 'Spatial Data',
     },
     {
-        title: 'District Comparison',
+        title: 'Sector Comparison',
         desc: 'Side-by-side benchmarking of socio-economic and migration indicators.',
         path: '/compare',
         icon: <CompareArrows sx={{ fontSize: 32, color: '#d97706' }} />,
@@ -79,7 +79,7 @@ const QUICK_MODULES = [
 ];
 
 const METRICS = [
-    { label: '6 Districts', sub: 'Study Area Spatial Coverage' },
+    { label: '13 Sectors', sub: 'Gisagara Study Area Coverage' },
     { label: '4 Risk Levels', sub: 'Very High to Low Categories' },
     { label: 'Infrastructure', sub: 'Power, Water & Road Gap Tracking' },
     { label: 'Youth Focus', sub: 'Targeted Demographics (15–35 yrs)' },
@@ -425,7 +425,7 @@ function HomePage({ user, onLogout }) {
                                         mx: 'auto',
                                     }}
                                 >
-                                    Monitor vulnerable districts, assess infrastructure deficits, and analyze socio-economic factors driving youth out-migration across 6 districts of Rwanda.
+                                    Monitor vulnerable sectors, assess infrastructure deficits, and analyze socio-economic factors driving youth out-migration across administrative sectors of Gisagara District, Rwanda.
                                 </Typography>
 
                                 <Stack

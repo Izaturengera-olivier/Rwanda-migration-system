@@ -49,12 +49,15 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=['get'])
     def study_districts(self, request):
-        districts = Location.objects.filter(location_type='district', is_study_area=True)
+        districts = Location.objects.filter(is_study_area=True, location_type='sector')
+        if not districts.exists():
+            districts = Location.objects.filter(is_study_area=True, location_type='district')
         return Response(self.get_serializer(districts, many=True).data)
 
     @action(detail=False, methods=['get'])
     def geojson(self, request):
         locations = self.get_queryset()
+        year = request.query_params.get('year')
         active_model = ModelVersion.objects.filter(is_active=True).first()
         features = []
         for loc in locations:
@@ -62,6 +65,8 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
                 try:
                     geometry = json.loads(loc.geometry_json)
                     pred_qs = ModelPrediction.objects.filter(location=loc)
+                    if year:
+                        pred_qs = pred_qs.filter(year=year)
                     if active_model and pred_qs.filter(model_version=active_model).exists():
                         pred = pred_qs.filter(model_version=active_model).order_by('-year', '-prediction_date', '-id').first()
                     else:
@@ -251,10 +256,15 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=['get'])
     def by_district(self, request):
         year = request.query_params.get('year')
+        loc_type = request.query_params.get('type')
         base_qs = ModelPrediction.objects.select_related('location', 'model_version').filter(
-            location__location_type='district',
             location__is_study_area=True
         )
+        if loc_type:
+            base_qs = base_qs.filter(location__location_type=loc_type)
+        elif base_qs.filter(location__location_type='sector').exists():
+            base_qs = base_qs.filter(location__location_type='sector')
+
         if year:
             base_qs = base_qs.filter(year=year)
 
@@ -271,7 +281,7 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 2. Try latest model with predictions
         models_with_preds = ModelVersion.objects.filter(
-            predictions__location__location_type='district'
+            predictions__location__is_study_area=True
         ).distinct().order_by('-training_date', '-id')
 
         target_model = models_with_preds.first()
@@ -284,7 +294,7 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
                         seen[p.location_id] = p
                 return Response(self.get_serializer(list(seen.values()), many=True).data)
 
-        # 3. Fallback to any available district predictions
+        # 3. Fallback to any available predictions
         seen = {}
         for p in base_qs.order_by('-prediction_date', '-id'):
             if p.location_id not in seen:
@@ -371,7 +381,9 @@ class DashboardViewSet(viewsets.ViewSet):
         try:
             year = request.query_params.get('year')
             active_model = ModelVersion.objects.filter(is_active=True).first()
-            district_qs = Location.objects.filter(is_study_area=True, location_type='district')
+            district_qs = Location.objects.filter(is_study_area=True, location_type='sector')
+            if not district_qs.exists():
+                district_qs = Location.objects.filter(is_study_area=True, location_type='district')
 
             if active_model:
                 predictions = ModelPrediction.objects.filter(
@@ -483,12 +495,22 @@ class UserViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
         password = data.pop('password', None)
+        if isinstance(password, list):
+            password = password[0] if password else None
+        if isinstance(password, str):
+            password = password.strip()
+
+        if not password:
+            return Response({'password': ['Password is required.']}, status=status.HTTP_400_BAD_REQUEST)
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        if password:
-            user.set_password(password)
-            user.save()
+        user.set_password(password)
+        if user.role == 'admin':
+            user.is_staff = True
+        user.save()
+
         AuditLog.objects.create(
             user=request.user if request.user.is_authenticated else None,
             action='user_created',
@@ -513,7 +535,9 @@ class UserViewSet(viewsets.ModelViewSet):
         user = serializer.save()
         if password:
             user.set_password(password)
-            user.save()
+        if user.role == 'admin':
+            user.is_staff = True
+        user.save()
         AuditLog.objects.create(
             user=request.user if request.user.is_authenticated else None,
             action='user_updated',
@@ -559,10 +583,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def change_role(self, request, pk=None):
         user = self.get_object()
         new_role = request.data.get('role')
-        if not new_role or new_role not in ['admin', 'researcher', 'viewer']:
-            return Response({'error': 'Invalid role specified. Valid roles: admin, researcher, viewer.'}, status=status.HTTP_400_BAD_REQUEST)
+        valid_roles = ['admin', 'officer', 'user', 'researcher', 'viewer']
+        if not new_role or new_role not in valid_roles:
+            return Response({'error': f'Invalid role specified. Valid roles: admin, officer, user.'}, status=status.HTTP_400_BAD_REQUEST)
         old_role = user.role
         user.role = new_role
+        user.is_staff = (new_role == 'admin')
         user.save()
         AuditLog.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -601,7 +627,7 @@ class UserRegistrationView(views.APIView):
         if User.objects.filter(email__iexact=email).exists():
             return Response({'detail': 'Email is already registered.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.create_user(username=username, email=email, password=password, role='viewer')
+        user = User.objects.create_user(username=username, email=email, password=password, role='user')
         return Response({
             'id': user.id,
             'username': user.username,
@@ -685,11 +711,15 @@ class LoginView(views.APIView):
     def get(self, request):
         """Return current authenticated user info."""
         if request.user.is_authenticated:
+            role = getattr(request.user, 'role', 'user')
+            is_admin = request.user.is_superuser or role == 'admin'
+            is_officer = is_admin or role in ('officer', 'researcher')
             return Response({
                 'id': request.user.id,
                 'username': request.user.username,
-                'role': getattr(request.user, 'role', 'viewer'),
-                'is_admin': request.user.is_superuser or getattr(request.user, 'role', '') == 'admin',
+                'role': role,
+                'is_admin': is_admin,
+                'is_officer': is_officer,
             })
         return Response({'detail': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -700,11 +730,13 @@ class LoginView(views.APIView):
         user = authenticate(request, username=username, password=password)
         if user is None:
             return Response({'detail': 'Invalid username or password'}, status=status.HTTP_401_UNAUTHORIZED)
-        is_admin = user.is_superuser or getattr(user, 'role', '') == 'admin'
+        role = getattr(user, 'role', 'user')
+        is_admin = user.is_superuser or role == 'admin'
+        is_officer = is_admin or role in ('officer', 'researcher')
         token, _ = Token.objects.get_or_create(user=user)
         AuditLog.objects.create(
             user=user, action='user_login',
-            description=f'User login: {user.username} ({getattr(user, "role", "viewer")})',
+            description=f'User login: {user.username} ({role})',
             ip_address=request.META.get('REMOTE_ADDR')
         )
         return Response({
@@ -712,8 +744,9 @@ class LoginView(views.APIView):
             'id': user.id,
             'username': user.username,
             'email': getattr(user, 'email', ''),
-            'role': getattr(user, 'role', 'viewer'),
+            'role': role,
             'is_admin': is_admin,
+            'is_officer': is_officer,
         })
 
 

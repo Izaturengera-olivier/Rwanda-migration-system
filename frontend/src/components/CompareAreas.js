@@ -21,8 +21,15 @@ function CompareAreas() {
 
   const fetchLocations = async () => {
     try {
-      const response = await axios.get(`${API_BASE}/locations/study-districts/`);
-      setLocations(response.data.results || response.data);
+      const response = await axios.get(`${API_BASE}/locations/`, {
+        params: { type: 'sector', district: 'Gisagara' }
+      });
+      let locs = response.data.results || response.data;
+      if (!locs || locs.length === 0) {
+        const fallback = await axios.get(`${API_BASE}/locations/`);
+        locs = fallback.data.results || fallback.data;
+      }
+      setLocations(locs);
     } catch (err) {
       console.error('Error fetching locations:', err);
     }
@@ -41,7 +48,7 @@ function CompareAreas() {
 
   const fetchComparison = async () => {
     if (selectedLocations.length < 2) {
-      setError('Please select at least 2 locations to compare');
+      setError('Please select at least 2 sectors to compare');
       return;
     }
 
@@ -66,15 +73,15 @@ function CompareAreas() {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Compare Areas
+        Compare Gisagara Sectors
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        Select districts to compare migration risk and infrastructure indicators
+        Select sectors of Gisagara district to compare migration risk and infrastructure indicators
       </Typography>
 
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Select Locations (max 5)
+          Select Sectors to Compare (max 5)
         </Typography>
         
         <FormControl sx={{ minWidth: 150, mb: 2 }}>

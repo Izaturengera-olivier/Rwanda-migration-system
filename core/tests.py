@@ -7,11 +7,11 @@ from ml_service.models import MigrationRiskModel, train_model_for_dataset, gener
 class CoreModelsTest(TestCase):
     def setUp(self):
         self.district = Location.objects.create(
-            name="Nyaruguru",
+            name="Gisagara",
             location_type="district",
             province="Southern",
-            district="Nyaruguru",
-            code="RW-NY-TEST",
+            district="Gisagara",
+            code="RW-GS-TEST",
             is_study_area=True
         )
         self.dataset = Dataset.objects.create(
@@ -24,7 +24,7 @@ class CoreModelsTest(TestCase):
         )
 
     def test_location_creation(self):
-        self.assertEqual(str(self.district), "Nyaruguru (district)")
+        self.assertEqual(str(self.district), "Gisagara (district)")
         self.assertTrue(self.district.is_study_area)
 
     def test_dataset_creation(self):
@@ -35,22 +35,22 @@ class CoreModelsTest(TestCase):
             location=self.district,
             dataset=self.dataset,
             year=2023,
-            total_population=328000,
-            youth_population_15_24=72160,
-            youth_percentage=22.0
+            total_population=341000,
+            youth_population_15_24=74020,
+            youth_percentage=21.7
         )
-        self.assertEqual(pop_record.total_population, 328000)
-        self.assertEqual(str(pop_record), "Nyaruguru - 2023")
+        self.assertEqual(pop_record.total_population, 341000)
+        self.assertEqual(str(pop_record), "Gisagara - 2023")
 
 
 class MLServiceTest(TestCase):
     def setUp(self):
         self.location = Location.objects.create(
-            name="Ngororero",
+            name="Gisagara",
             location_type="district",
-            province="Western",
-            district="Ngororero",
-            code="RW-NG-TEST",
+            province="Southern",
+            district="Gisagara",
+            code="RW-GS-TEST-ML",
             is_study_area=True
         )
         self.dataset = Dataset.objects.create(

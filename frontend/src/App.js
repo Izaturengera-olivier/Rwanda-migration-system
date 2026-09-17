@@ -51,6 +51,30 @@ const PUBLIC_NAV = [
   { label: "Reports", path: "/reports" },
 ];
 
+export function getUserRoleLabel(user) {
+  if (!user) return "Guest";
+  const r = (user.role || "").toLowerCase();
+  if (user.is_admin || r === "admin") return "Admin";
+  if (user.is_officer || r === "officer" || r === "researcher") return "Officer";
+  return "User";
+}
+
+export function isUserAdmin(user) {
+  if (!user) return false;
+  return Boolean(user.is_admin || user.role === "admin");
+}
+
+export function isUserOfficer(user) {
+  if (!user) return false;
+  return Boolean(
+    user.is_admin ||
+    user.is_officer ||
+    user.role === "admin" ||
+    user.role === "officer" ||
+    user.role === "researcher"
+  );
+}
+
 function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -61,7 +85,7 @@ function NavBar({ user, onLogout }) {
   if (location.pathname === "/") return null;
 
   const navLinks = [...PUBLIC_NAV];
-  if (user?.is_admin) {
+  if (isUserAdmin(user)) {
     navLinks.push({ label: "Admin Dashboard", path: "/admin" });
   }
 
@@ -181,7 +205,7 @@ function NavBar({ user, onLogout }) {
             ) : (
               <>
                 <Chip
-                  label={`${user.username} (${user.is_admin ? "Admin" : "User"})`}
+                  label={`${user.username} (${getUserRoleLabel(user)})`}
                   size="small"
                   sx={{
                     bgcolor: "rgba(255,255,255,0.2)",
@@ -206,6 +230,31 @@ function NavBar({ user, onLogout }) {
   );
 }
 
+function ProtectedOfficer({ user, children, featureName = "This feature" }) {
+  const navigate = useNavigate();
+
+  if (user && !isUserOfficer(user)) {
+    return (
+      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+        <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            <strong>Officer Role Required:</strong> {featureName} is reserved for <strong>Officer</strong> and <strong>Administrator</strong> accounts.
+          </Alert>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            You are signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)} — View Only).
+            Contact an administrator if you require Officer access to compare sectors or generate reports.
+          </Typography>
+          <Button variant="contained" onClick={() => navigate("/dashboard")}>
+            Return to Dashboard
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  return children;
+}
+
 function ProtectedAdmin({ user }) {
   const navigate = useNavigate();
 
@@ -213,7 +262,7 @@ function ProtectedAdmin({ user }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!user.is_admin) {
+  if (!isUserAdmin(user)) {
     return (
       <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 500, textAlign: "center" }} elevation={3}>
@@ -223,7 +272,7 @@ function ProtectedAdmin({ user }) {
           </Alert>
           <Typography variant="body2" color="text.secondary" paragraph>
             You are currently signed in as <strong>{user.username}</strong> (
-            {user.role || "user"}).
+            {getUserRoleLabel(user)}).
           </Typography>
           <Button variant="contained" onClick={() => navigate("/dashboard")}>
             Go to Main Dashboard
@@ -302,9 +351,23 @@ function App() {
           <Route path="/map" element={<MigrationRiskMap />} />
           <Route path="/district/:id" element={<DistrictProfile />} />
           <Route path="/infrastructure" element={<InfrastructureGaps />} />
-          <Route path="/compare" element={<CompareAreas />} />
+          <Route
+            path="/compare"
+            element={
+              <ProtectedOfficer user={user} featureName="Sector Comparison">
+                <CompareAreas />
+              </ProtectedOfficer>
+            }
+          />
           <Route path="/trends" element={<Trends />} />
-          <Route path="/reports" element={<Reports />} />
+          <Route
+            path="/reports"
+            element={
+              <ProtectedOfficer user={user} featureName="Report Generation">
+                <Reports />
+              </ProtectedOfficer>
+            }
+          />
           <Route
             path="/login"
             element={<Login onLoginSuccess={(u) => setUser(u)} />}

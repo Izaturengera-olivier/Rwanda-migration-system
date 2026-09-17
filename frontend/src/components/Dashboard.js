@@ -25,7 +25,7 @@ function Dashboard() {
     const safe = (promise) => promise.catch(() => null);
     Promise.all([
       safe(axios.get(`${API_BASE}/dashboard/`)),
-      safe(axios.get(`${API_BASE}/locations/study-districts/`)),
+      safe(axios.get(`${API_BASE}/locations/`, { params: { type: 'sector', district: 'Gisagara' } }).then(r => r.data.results && r.data.results.length > 0 ? r : axios.get(`${API_BASE}/locations/`))),
       safe(axios.get(`${API_BASE}/predictions/by-district/`).catch(() => axios.get(`${API_BASE}/predictions/by_district/`))),
     ]).then(([statsRes, distRes, predRes]) => {
       if (!statsRes && !distRes) {
@@ -65,7 +65,7 @@ function Dashboard() {
   const riskCategoryBarChart = stats ? {
     labels: ['Very High', 'High', 'Moderate', 'Low'],
     datasets: [{
-      label: 'Number of Districts',
+      label: 'Number of Sectors',
       data: [stats.very_high_risk_count, stats.high_risk_count, stats.moderate_risk_count, stats.low_risk_count],
       backgroundColor: [RISK_COLORS.very_high, RISK_COLORS.high, RISK_COLORS.moderate, RISK_COLORS.low],
       borderRadius: 4,
@@ -73,7 +73,7 @@ function Dashboard() {
   } : null;
 
   const barChartData = districtBarChart || riskCategoryBarChart;
-  const barChartTitle = districtBarChart ? 'Risk Score by District' : 'Risk Category Breakdown';
+  const barChartTitle = districtBarChart ? 'Risk Score by Sector' : 'Risk Category Breakdown';
 
   if (loading) return <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px"><CircularProgress /></Box>;
 
@@ -83,13 +83,13 @@ function Dashboard() {
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 3 }}>
         <Box>
-          <Typography variant="h4" gutterBottom>Rwanda Migration Risk Dashboard</Typography>
+          <Typography variant="h4" gutterBottom>Gisagara Migration Risk Dashboard</Typography>
           <Typography variant="body1" color="text.secondary">
-            Predictive mapping of rural youth migration risk across six study districts
+            Predictive mapping of rural youth migration risk across Gisagara administrative sectors
           </Typography>
         </Box>
-        <FormControl sx={{ minWidth: 240 }}>
-          <InputLabel>Select District to View Profile</InputLabel>
+        <FormControl sx={{ minWidth: 260 }}>
+          <InputLabel>Select Sector to View Profile</InputLabel>
           <Select value={selectedDistrict} label="Select District to View Profile" onChange={handleDistrictSelect}>
             {districts.map(d => <MenuItem key={d.id} value={d.id}>{d.name} — {d.province} Province</MenuItem>)}
           </Select>
@@ -244,7 +244,7 @@ function Dashboard() {
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button variant="contained" onClick={() => navigate('/map')}>View Risk Map</Button>
           <Button variant="outlined" onClick={() => navigate('/infrastructure')}>Infrastructure Gaps</Button>
-          <Button variant="outlined" onClick={() => navigate('/compare')}>Compare Districts</Button>
+          <Button variant="outlined" onClick={() => navigate('/compare')}>Compare Sectors</Button>
           <Button variant="outlined" onClick={() => navigate('/trends')}>Historical Trends</Button>
           <Button variant="outlined" onClick={() => navigate('/reports')}>Generate Report</Button>
         </Box>

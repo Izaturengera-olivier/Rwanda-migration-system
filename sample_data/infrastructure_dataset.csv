@@ -1,7 +1,2 @@
 district,sector,province,year,electricity_coverage,internet_coverage,water_access_rate,sanitation_coverage,public_transport_access,road_density,infrastructure_gap_index
-Nyaruguru,,Southern,2023,22.0,8.5,68.0,55.0,30.0,0.28,72.0
 Gisagara,,Southern,2023,28.0,12.0,72.0,60.0,38.0,0.35,65.0
-Ngororero,,Western,2023,18.0,6.5,62.0,48.0,25.0,0.22,78.0
-Rutsiro,,Western,2023,25.0,10.0,70.0,57.0,33.0,0.30,68.0
-Gicumbi,,Northern,2023,35.0,18.0,78.0,65.0,45.0,0.42,55.0
-Kirehe,,Eastern,2023,15.0,5.0,58.0,42.0,20.0,0.18,82.0

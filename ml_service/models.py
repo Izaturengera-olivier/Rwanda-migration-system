@@ -119,11 +119,11 @@ class MigrationRiskModel:
             (1.0 - min(max(elec_cov, 0.0), 1.0)) * 0.05
         )
 
-        if risk_index < 0.40:
+        if risk_index < 0.38:
             label = 0  # low
-        elif risk_index < 0.55:
+        elif risk_index < 0.48:
             label = 1  # moderate
-        elif risk_index < 0.70:
+        elif risk_index < 0.58:
             label = 2  # high
         else:
             label = 3  # very_high
@@ -169,14 +169,20 @@ class MigrationRiskModel:
         # Safe train/test split based on sample size and class distribution
         unique_classes, counts = np.unique(y, return_counts=True)
         min_class_count = np.min(counts) if len(counts) > 0 else 0
-        use_stratify = y if (len(unique_classes) > 1 and min_class_count >= 2 and len(y) >= 5) else None
+        test_samples = max(1, int(len(y) * 0.2))
+        use_stratify = y if (len(unique_classes) > 1 and min_class_count >= 2 and test_samples >= len(unique_classes)) else None
 
         if len(y) < 4:
             X_train, X_test, y_train, y_test = X, X, y, y
         else:
-            X_train, X_test, y_train, y_test = train_test_split(
-                X, y, test_size=0.2, random_state=42, stratify=use_stratify
-            )
+            try:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y, test_size=0.2, random_state=42, stratify=use_stratify
+                )
+            except ValueError:
+                X_train, X_test, y_train, y_test = train_test_split(
+                    X, y, test_size=0.2, random_state=42, stratify=None
+                )
         
         # Select algorithm
         if algorithm == 'random_forest':

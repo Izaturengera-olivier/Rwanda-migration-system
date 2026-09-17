@@ -12,6 +12,17 @@ class IsAdminRole(BasePermission):
         return request.user.is_superuser or getattr(request.user, 'role', None) == 'admin'
 
 
+class IsOfficerRole(BasePermission):
+    """Grants access to officers and admins."""
+    def has_permission(self, request, view):
+        if settings.DEBUG:
+            return True
+        if not request.user or not request.user.is_authenticated:
+            return False
+        role = getattr(request.user, 'role', None)
+        return request.user.is_superuser or role in ('admin', 'officer', 'researcher')
+
+
 class IsAdminOrReadOnly(BasePermission):
     """
     Read-only access for everyone (including unauthenticated).
@@ -27,10 +38,10 @@ class IsAdminOrReadOnly(BasePermission):
 
 
 class IsAdminOrResearcher(BasePermission):
-    """Read access for all. Write access for admin and researcher roles."""
+    """Read access for all. Write access for admin, officer, and researcher roles."""
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS or settings.DEBUG:
             return True
         if not request.user or not request.user.is_authenticated:
             return False
-        return request.user.is_superuser or getattr(request.user, 'role', None) in ('admin', 'researcher')
+        return request.user.is_superuser or getattr(request.user, 'role', None) in ('admin', 'officer', 'researcher')

@@ -4,48 +4,6 @@ from django.utils import timezone
 
 SAMPLE_PREDICTIONS = [
     {
-        'district': 'Ngororero',
-        'risk_category': 'very_high',
-        'risk_score': 0.88,
-        'prob_very_high': 0.88, 'prob_high': 0.08, 'prob_moderate': 0.03, 'prob_low': 0.01,
-        'factors': [
-            {'name': 'High Youth Unemployment', 'impact': 'high', 'value': '35.8%'},
-            {'name': 'Infrastructure Gap Index', 'impact': 'high', 'value': '78.0/100'},
-            {'name': 'Low Electricity Coverage', 'impact': 'medium', 'value': '18.0%'},
-        ]
-    },
-    {
-        'district': 'Kirehe',
-        'risk_category': 'very_high',
-        'risk_score': 0.85,
-        'prob_very_high': 0.85, 'prob_high': 0.10, 'prob_moderate': 0.04, 'prob_low': 0.01,
-        'factors': [
-            {'name': 'High Poverty Rate', 'impact': 'high', 'value': '64.2%'},
-            {'name': 'Low Internet Coverage', 'impact': 'high', 'value': '5.0%'},
-            {'name': 'Out-Migration Rate', 'impact': 'medium', 'value': '10.2%'},
-        ]
-    },
-    {
-        'district': 'Nyaruguru',
-        'risk_category': 'high',
-        'risk_score': 0.74,
-        'prob_very_high': 0.15, 'prob_high': 0.74, 'prob_moderate': 0.08, 'prob_low': 0.03,
-        'factors': [
-            {'name': 'High Poverty Rate', 'impact': 'high', 'value': '58.3%'},
-            {'name': 'Distance to Hospital', 'impact': 'medium', 'value': '18.5 km'},
-        ]
-    },
-    {
-        'district': 'Rutsiro',
-        'risk_category': 'high',
-        'risk_score': 0.68,
-        'prob_very_high': 0.10, 'prob_high': 0.68, 'prob_moderate': 0.16, 'prob_low': 0.06,
-        'factors': [
-            {'name': 'Youth Unemployment', 'impact': 'high', 'value': '30.2%'},
-            {'name': 'Infrastructure Deficit', 'impact': 'medium', 'value': '68.0/100'},
-        ]
-    },
-    {
         'district': 'Gisagara',
         'risk_category': 'moderate',
         'risk_score': 0.52,
@@ -55,21 +13,11 @@ SAMPLE_PREDICTIONS = [
             {'name': 'Limited Job Opportunities', 'impact': 'medium', 'value': '34.0/100'},
         ]
     },
-    {
-        'district': 'Gicumbi',
-        'risk_category': 'low',
-        'risk_score': 0.28,
-        'prob_very_high': 0.02, 'prob_high': 0.08, 'prob_moderate': 0.20, 'prob_low': 0.70,
-        'factors': [
-            {'name': 'Higher Literacy Rate', 'impact': 'positive', 'value': '78.2%'},
-            {'name': 'Improved Electricity Access', 'impact': 'positive', 'value': '35.0%'},
-        ]
-    },
 ]
 
 
 class Command(BaseCommand):
-    help = 'Seed predictions and activate model for study districts'
+    help = 'Seed predictions and activate model for Gisagara district'
 
     def handle(self, *args, **options):
         year = 2023
@@ -95,7 +43,7 @@ class Command(BaseCommand):
             version='2023.1',
             defaults={
                 'algorithm': 'random_forest',
-                'description': 'Trained model for predicting rural youth migration risk across study districts.',
+                'description': 'Trained model for predicting rural youth migration risk across Gisagara district.',
                 'training_dataset': dataset,
                 'status': 'active',
                 'is_active': True,
@@ -143,4 +91,4 @@ class Command(BaseCommand):
             count += 1
             self.stdout.write(f'  Prediction created/updated for: {location.name} ({item["risk_category"]})')
 
-        self.stdout.write(self.style.SUCCESS(f'\nDone! Seeded predictions for {count} districts. Active Model: {model_version.name} v{model_version.version}'))
+        self.stdout.write(self.style.SUCCESS(f'\nDone! Seeded predictions for Gisagara district. Active Model: {model_version.name} v{model_version.version}'))

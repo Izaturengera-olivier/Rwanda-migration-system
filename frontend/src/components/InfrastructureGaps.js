@@ -15,7 +15,11 @@ import {
   CardContent,
   LinearProgress,
   Chip,
+  Button,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import { Bar } from "react-chartjs-2";
 import axios from "axios";
 
@@ -35,11 +39,16 @@ function getGapColor(index) {
   return GAP_COLORS.low;
 }
 
-function MapCenter() {
+function MapCenter({ showSectors }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([-1.9403, 29.8739], 7);
-  }, [map]);
+    if (!map) return;
+    if (showSectors) {
+      map.setView([-2.62, 29.86], 11.5, { animate: false });
+    } else {
+      map.setView([-1.94, 29.87], 8, { animate: false });
+    }
+  }, [map, showSectors]);
   return null;
 }
 
@@ -68,20 +77,17 @@ function IndicatorBar({ label, value, color }) {
 
 function InfrastructureGaps() {
   const navigate = useNavigate();
+  const [showSectors, setShowSectors] = useState(false); // Only show sector list when user clicks Gisagara
   const [geoData, setGeoData] = useState(null);
   const [infraData, setInfraData] = useState([]);
   const [year, setYear] = useState(2023);
+  const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState(null);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [districtSectors, setDistrictSectors] = useState([]);
-  const [selectedSector, setSelectedSector] = useState(null);
 
   useEffect(() => {
     Promise.all([
-      axios.get(`${API_BASE}/locations/geojson/`, {
-        params: { year, type: "district" },
-      }),
-      axios.get(`${API_BASE}/locations/study-districts/`),
+      axios.get(`${API_BASE}/locations/geojson/`, { params: { year, type: "district" } }),
+      axios.get(`${API_BASE}/locations/`, { params: { type: "sector", district: "Gisagara" } }),
     ])
       .then(([geoRes, distRes]) => {
         setGeoData(geoRes.data);
@@ -112,80 +118,66 @@ function InfrastructureGaps() {
       );
   }, [year]);
 
-  const fetchSectorsForDistrict = async (districtName) => {
-    try {
-      const response = await axios.get(`${API_BASE}/locations/`, {
-        params: { type: "sector", district: districtName },
-      });
-      setDistrictSectors(response.data.results || response.data);
-    } catch (err) {
-      setDistrictSectors([]);
-    }
-  };
-
-  const getFeatureStyle = (feature) => {
-    const gap = feature.properties.infrastructure_gap_index || 0;
-    return {
-      fillColor: getGapColor(gap),
-      weight: 2,
-      opacity: 1,
-      color: "#fff",
-      dashArray: "3",
-      fillOpacity: 0.6,
-    };
-  };
-
   const onEachFeature = (feature, layer) => {
-    const p = feature.properties;
-    const gapVal =
-      p.infrastructure_gap_index != null
-        ? p.infrastructure_gap_index.toFixed(1)
-        : "N/A";
     layer.bindTooltip(
-      `<div style="text-align: center;"><strong>${p.name}</strong><br/><span style="font-size: 10px; font-weight: normal;">Gap: ${gapVal}</span></div>`,
-      { permanent: true, direction: "center", className: "district-map-label" },
+      `<div style="text-align: center; padding: 4px 8px; font-weight: bold; font-size: 15px; color: #1a237e;">
+        📍 Gisagara District<br/>
+        <span style="font-size: 11px; font-weight: 600; color: #d32f2f;">👉 Click map to view 13 sectors</span>
+       </div>`,
+      { permanent: true, direction: "center", className: "gisagara-text-label" },
     );
     layer.on({
       click: () => {
-        setSelectedLocation(p);
-        setSelectedSector(null);
-        if (p.district || p.name) {
-          fetchSectorsForDistrict(p.district || p.name);
-        }
+        setShowSectors((prev) => !prev);
       },
       mouseover: (e) =>
-        e.target.setStyle({ weight: 3, color: "#333", fillOpacity: 0.85 }),
+        e.target.setStyle({ weight: 2.5, color: "#1565c0", fillOpacity: 0.12 }),
       mouseout: (e) =>
         e.target.setStyle({
-          weight: 2,
-          color: "#fff",
-          dashArray: "3",
-          fillOpacity: 0.6,
+          weight: 1.5,
+          color: "#1976d2",
+          dashArray: "4",
+          fillOpacity: 0.04,
         }),
     });
   };
 
-  // Bar chart comparing all districts
+  const getFeatureStyle = () => ({
+    fillColor: "#1976d2",
+    weight: 1.5,
+    opacity: 0.8,
+    color: "#1976d2",
+    dashArray: "4",
+    fillOpacity: 0.04,
+  });
+
+  const filteredInfra = infraData.filter(
+    (d) =>
+      !searchQuery ||
+      d.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Bar chart comparing sectors
   const barData =
-    infraData.filter((d) => d.infra).length > 0
+    filteredInfra.filter((d) => d.infra).length > 0
       ? {
-          labels: infraData.map((d) => d.name),
+          labels: filteredInfra.map((d) => d.name),
           datasets: [
             {
               label: "Electricity %",
-              data: infraData.map((d) => d.infra?.electricity_coverage || 0),
+              data: filteredInfra.map((d) => d.infra?.electricity_coverage || 0),
               backgroundColor: "#f57c00",
               borderRadius: 3,
             },
             {
               label: "Internet %",
-              data: infraData.map((d) => d.infra?.internet_coverage || 0),
+              data: filteredInfra.map((d) => d.infra?.internet_coverage || 0),
               backgroundColor: "#0288d1",
               borderRadius: 3,
             },
             {
               label: "Water %",
-              data: infraData.map((d) => d.infra?.water_access_rate || 0),
+              data: filteredInfra.map((d) => d.infra?.water_access_rate || 0),
               backgroundColor: "#00838f",
               borderRadius: 3,
             },
@@ -195,28 +187,71 @@ function InfrastructureGaps() {
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        Infrastructure Gaps
-      </Typography>
-      <Typography variant="body1" color="text.secondary" gutterBottom>
-        Infrastructure coverage and gaps across the six study districts
-      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 2, mb: 1 }}>
+        <Box>
+          <Typography variant="h4" gutterBottom>
+            Infrastructure Gaps Analysis
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {showSectors
+              ? "Showing Gisagara District's 13 administrative sectors. Click any sector card to view its profile."
+              : "Overview of Rwanda with Gisagara District. Click on Gisagara on the map to view sector gaps."}
+          </Typography>
+        </Box>
+        <Box>
+          {showSectors ? (
+            <Button
+              variant="outlined"
+              color="secondary"
+              onClick={() => setShowSectors(false)}
+            >
+              ✕ Hide Sector List (Reset View)
+            </Button>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => setShowSectors(true)}
+            >
+              Click Gisagara / View 13 Sectors →
+            </Button>
+          )}
+        </Box>
+      </Box>
 
       <Paper sx={{ p: 2, mb: 2 }}>
-        <FormControl sx={{ minWidth: 150 }}>
-          <InputLabel>Year</InputLabel>
-          <Select
-            value={year}
-            label="Year"
-            onChange={(e) => setYear(e.target.value)}
-          >
-            {[2023, 2022, 2021, 2020].map((y) => (
-              <MenuItem key={y} value={y}>
-                {y}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+          <FormControl sx={{ minWidth: 150 }}>
+            <InputLabel>Year</InputLabel>
+            <Select
+              value={year}
+              label="Year"
+              onChange={(e) => setYear(e.target.value)}
+            >
+              {[2023, 2022, 2021, 2020].map((y) => (
+                <MenuItem key={y} value={y}>
+                  {y}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {showSectors && (
+            <TextField
+              placeholder="Search sector name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ minWidth: 240 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          )}
+        </Box>
       </Paper>
 
       {error && (
@@ -225,237 +260,180 @@ function InfrastructureGaps() {
         </Alert>
       )}
 
-      <Grid container spacing={3}>
-        {/* Map */}
-        <Grid item xs={12} md={7}>
-          <Paper sx={{ height: 500, position: "relative" }}>
-            {/* North Arrow / Compass Rose Overlay */}
-            <Box
-              sx={{
-                position: "absolute",
-                top: 16,
-                left: 16,
-                zIndex: 1000,
-                bgcolor: "rgba(255, 255, 255, 0.9)",
-                p: 1,
-                borderRadius: 1,
-                boxShadow: 2,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                pointerEvents: "none",
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M12 2L15 9H9L12 2Z" fill="#e53935" />
-                <path d="M12 22L9 15H15L12 22Z" fill="#9e9e9e" />
-              </svg>
-              <Typography variant="caption" sx={{ fontWeight: "bold", fontSize: "10px", lineHeight: 1 }}>
-                N
-              </Typography>
-            </Box>
+      {/* Map Container */}
+      <Paper sx={{ height: 350, position: "relative", mb: 3 }}>
+        {/* North Arrow / Compass Rose Overlay */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: 16,
+            left: 16,
+            zIndex: 1000,
+            bgcolor: "rgba(255, 255, 255, 0.9)",
+            p: 1,
+            borderRadius: 1,
+            boxShadow: 2,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            pointerEvents: "none",
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24">
+            <path d="M12 2L15 9H9L12 2Z" fill="#e53935" />
+            <path d="M12 22L9 15H15L12 22Z" fill="#9e9e9e" />
+          </svg>
+          <Typography variant="caption" sx={{ fontWeight: "bold", fontSize: "10px", lineHeight: 1 }}>
+            N
+          </Typography>
+        </Box>
 
-            <MapContainer
-              style={{ height: "100%", width: "100%", background: "#f8fafc" }}
-              center={[-1.9403, 29.8739]}
-              zoom={8.5}
-              minZoom={8}
-              maxZoom={12}
-              maxBounds={[[-2.95, 28.7], [-1.0, 31.05]]}
-              maxBoundsViscosity={1.0}
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution="&copy; OpenStreetMap"
-              />
-              <ScaleControl position="bottomright" imperial={false} />
-              <MapCenter />
-              {geoData?.features?.length > 0 && (
-                <GeoJSON
-                  key={year}
-                  data={geoData}
-                  style={getFeatureStyle}
-                  onEachFeature={onEachFeature}
-                />
-              )}
-            </MapContainer>
-          </Paper>
-
-          {selectedLocation && (
-            <Paper sx={{ mt: 2, p: 2, borderLeft: "4px solid #0288d1" }}>
-              <Typography variant="subtitle1" fontWeight="bold">
-                {selectedLocation.name} District Infrastructure Profile
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {selectedLocation.province} Province &nbsp;|&nbsp; Gap Index:{" "}
-                <strong>
-                  {selectedLocation.infrastructure_gap_index != null
-                    ? selectedLocation.infrastructure_gap_index.toFixed(1)
-                    : "N/A"}
-                </strong>
-              </Typography>
-
-              {districtSectors.length > 0 && (
-                <Box sx={{ mt: 1.5, pt: 1.5, borderTop: "1px solid #e0e0e0" }}>
-                  <Typography variant="caption" fontWeight="bold" display="block" gutterBottom>
-                    Select Sector in {selectedLocation.name}:
-                  </Typography>
-                  <Box display="flex" gap={1} flexWrap="wrap">
-                    {districtSectors.map((sec) => (
-                      <Chip
-                        key={sec.id}
-                        label={sec.sector || sec.name}
-                        clickable
-                        size="small"
-                        color={selectedSector?.id === sec.id ? "primary" : "default"}
-                        onClick={() => {
-                          setSelectedSector(sec);
-                          if (sec.id) navigate(`/district/${sec.id}`);
-                        }}
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              )}
-            </Paper>
+        <MapContainer
+          style={{ height: "100%", width: "100%", background: "#f8fafc" }}
+          center={[-1.94, 29.87]}
+          zoom={8}
+          minZoom={6}
+          maxZoom={15}
+          maxBounds={[[-3.50, 28.00], [-0.50, 31.50]]}
+          maxBoundsViscosity={0.8}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution="&copy; OpenStreetMap"
+          />
+          <ScaleControl position="bottomright" imperial={false} />
+          <MapCenter showSectors={showSectors} />
+          {geoData?.features?.length > 0 && (
+            <GeoJSON
+              key={year}
+              data={geoData}
+              style={getFeatureStyle}
+              onEachFeature={onEachFeature}
+            />
           )}
-        </Grid>
+        </MapContainer>
+      </Paper>
 
-        {/* Legend + Summary */}
-        <Grid item xs={12} md={5}>
-          <Card sx={{ mb: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Gap Index Legend
-              </Typography>
-              {[
-                { label: "Critical Gap (75–100)", color: GAP_COLORS.critical },
-                { label: "High Gap (50–74)", color: GAP_COLORS.high },
-                { label: "Medium Gap (25–49)", color: GAP_COLORS.medium },
-                { label: "Low Gap (0–24)", color: GAP_COLORS.low },
-              ].map((item) => (
-                <Box
-                  key={item.label}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1,
-                    mb: 0.5,
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 18,
-                      height: 18,
-                      bgcolor: item.color,
-                      borderRadius: 1,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <Typography variant="body2">{item.label}</Typography>
-                </Box>
-              ))}
-            </CardContent>
-          </Card>
-
-          {/* Per-district infrastructure cards */}
-          <Box
-            sx={{
-              maxHeight: 340,
-              overflowY: "auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 1,
-            }}
-          >
-            {infraData.map((d) => (
-              <Card
-                key={d.id}
-                sx={{ cursor: "pointer", "&:hover": { boxShadow: 3 } }}
-                onClick={() => navigate(`/district/${d.id}`)}
-              >
-                <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-                  <Typography variant="subtitle2">
-                    {d.name}{" "}
-                    <Typography
-                      component="span"
-                      variant="caption"
-                      color="text.secondary"
-                    >
-                      — {d.province}
-                    </Typography>
-                  </Typography>
-                  {d.infra ? (
-                    <>
-                      <IndicatorBar
-                        label="Electricity"
-                        value={d.infra.electricity_coverage}
-                        color="#f57c00"
-                      />
-                      <IndicatorBar
-                        label="Internet"
-                        value={d.infra.internet_coverage}
-                        color="#0288d1"
-                      />
-                      <IndicatorBar
-                        label="Water"
-                        value={d.infra.water_access_rate}
-                        color="#00838f"
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        Gap Index:{" "}
-                        <strong>
-                          {d.infra.infrastructure_gap_index?.toFixed(1) ||
-                            "N/A"}
-                        </strong>
-                        /100
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      No infrastructure data for {year}
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+      {/* Gisagara Sector Infrastructure List & Cards Under Map - ONLY shown when user clicks Gisagara */}
+      {showSectors && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+            <Typography variant="h6" fontWeight="bold">
+              Gisagara Administrative Sectors Infrastructure ({filteredInfra.length})
+            </Typography>
+            <Button
+              variant="outlined"
+              size="small"
+              color="secondary"
+              onClick={() => setShowSectors(false)}
+            >
+              ✕ Hide Sector List
+            </Button>
           </Box>
-        </Grid>
 
-        {/* Comparison Bar Chart */}
-        {barData && (
-          <Grid item xs={12}>
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="h6" gutterBottom>
-                Infrastructure Coverage Comparison
-              </Typography>
-              <Bar
-                data={barData}
-                options={{
-                  responsive: true,
-                  plugins: { legend: { position: "top" } },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      max: 100,
-                      title: { display: true, text: "Coverage (%)" },
-                    },
+          {filteredInfra.length === 0 ? (
+            <Alert severity="info">No sectors match your search query.</Alert>
+          ) : (
+            <Grid container spacing={2}>
+              {filteredInfra.map((d) => {
+                const gap = d.infra?.infrastructure_gap_index;
+                return (
+                  <Grid item xs={12} sm={6} md={4} key={d.id}>
+                    <Card
+                      sx={{
+                        cursor: "pointer",
+                        transition: "transform 0.15s ease-in-out, box-shadow 0.15s",
+                        "&:hover": { boxShadow: 5, transform: "translateY(-2px)" },
+                        borderLeft: `5px solid ${gap != null ? getGapColor(gap) : "#9e9e9e"}`,
+                      }}
+                      onClick={() => navigate(`/district/${d.id}`)}
+                    >
+                      <CardContent sx={{ pb: 1.5, "&:last-child": { pb: 2 } }}>
+                        <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
+                          <Typography variant="subtitle1" fontWeight="bold">
+                            {d.name}
+                          </Typography>
+                          {gap != null && (
+                            <Chip
+                              label={`Gap: ${gap.toFixed(1)}`}
+                              size="small"
+                              sx={{
+                                bgcolor: getGapColor(gap),
+                                color: gap >= 25 && gap < 50 ? "black" : "white",
+                                fontWeight: "bold",
+                                fontSize: "10px",
+                              }}
+                            />
+                          )}
+                        </Box>
+
+                        {d.infra && (
+                          <Box sx={{ mt: 1, mb: 1 }}>
+                            <IndicatorBar
+                              label="Electricity Coverage"
+                              value={d.infra.electricity_coverage}
+                              color="#f57c00"
+                            />
+                            <IndicatorBar
+                              label="Internet Access"
+                              value={d.infra.internet_coverage}
+                              color="#0288d1"
+                            />
+                            <IndicatorBar
+                              label="Water Access"
+                              value={d.infra.water_access_rate}
+                              color="#00838f"
+                            />
+                          </Box>
+                        )}
+
+                        <Button
+                          variant="contained"
+                          size="small"
+                          color="primary"
+                          fullWidth
+                          sx={{ mt: 1, textTransform: "none", fontWeight: "bold" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/district/${d.id}`);
+                          }}
+                        >
+                          View Sector Profile →
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          )}
+        </Paper>
+      )}
+
+      {/* Bar chart comparison */}
+      {showSectors && barData && (
+        <Paper sx={{ p: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Infrastructure Coverage Comparison Across Gisagara Sectors
+          </Typography>
+          <Box sx={{ height: 320 }}>
+            <Bar
+              data={barData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: { display: true, text: "Coverage (%)" },
                   },
-                }}
-              />
-            </Paper>
-          </Grid>
-        )}
-
-        {!barData && (
-          <Grid item xs={12}>
-            <Alert severity="info">
-              No infrastructure data available for {year}. Upload and process an
-              infrastructure dataset in the Admin Dashboard.
-            </Alert>
-          </Grid>
-        )}
-      </Grid>
+                },
+              }}
+            />
+          </Box>
+        </Paper>
+      )}
     </Box>
   );
 }

@@ -11,11 +11,13 @@ class User(AbstractUser):
     """Custom user model with role-based access."""
     ROLE_CHOICES = [
         ('admin', 'Administrator'),
-        ('researcher', 'Researcher'),
+        ('officer', 'Officer'),
+        ('user', 'User'),
         ('viewer', 'Viewer'),
+        ('researcher', 'Researcher'),
     ]
     
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='viewer')
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='user')
     organization = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=20, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -42,7 +44,7 @@ class Location(models.Model):
     ]
     
     STUDY_DISTRICTS = [
-        'Nyaruguru', 'Gisagara', 'Ngororero', 'Rutsiro', 'Gicumbi', 'Kirehe'
+        'Gisagara'
     ]
     
     name = models.CharField(max_length=200)
@@ -426,6 +428,11 @@ class AuditLog(models.Model):
         ('prediction_generation', 'Prediction Generation'),
         ('user_login', 'User Login'),
         ('user_logout', 'User Logout'),
+        ('user_created', 'User Created'),
+        ('user_updated', 'User Updated'),
+        ('user_deleted', 'User Deleted'),
+        ('user_status_change', 'User Status Change'),
+        ('user_role_change', 'User Role Change'),
         ('settings_change', 'Settings Change'),
         ('other', 'Other'),
     ]
