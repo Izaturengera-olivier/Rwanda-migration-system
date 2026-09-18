@@ -307,6 +307,8 @@ function ProtectedManagement({ user, adminOnly = false }) {
 }
 
 function App() {
+  const location = useLocation();
+  const isHome = location.pathname === "/";
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem("user");
@@ -359,10 +361,7 @@ function App() {
     setUser(null);
   };
 
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <NavBar user={user} onLogout={handleLogout} />
-      <Container maxWidth="xl" sx={{ mt: 10, mb: 4, flex: 1 }}>
+  const pageContent = (
         <Routes>
           <Route
             path="/"
@@ -397,7 +396,18 @@ function App() {
           <Route path="/data-management" element={<ProtectedManagement user={user} adminOnly={false} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Container>
+  );
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <NavBar user={user} onLogout={handleLogout} />
+      {isHome ? (
+        <Box sx={{ flex: 1 }}>{pageContent}</Box>
+      ) : (
+        <Container maxWidth="xl" sx={{ mt: 10, mb: 4, flex: 1 }}>
+          {pageContent}
+        </Container>
+      )}
       <Footer />
     </Box>
   );
