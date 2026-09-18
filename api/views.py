@@ -25,7 +25,7 @@ from .serializers import (
     UserSerializer, ComparisonSerializer, DashboardStatsSerializer
 )
 
-from .permissions import IsAdminRole, IsAdminOrReadOnly, IsAdminOrResearcher
+from .permissions import IsAdminRole, IsOfficerRole, IsAdminOrReadOnly, IsOfficerOrAdminOrReadOnly, IsAdminOrResearcher
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ class DatasetViewSet(viewsets.ModelViewSet):
     queryset = Dataset.objects.all().order_by('-upload_date')
     serializer_class = DatasetSerializer
     parser_classes = [MultiPartParser, FormParser, JSONParser]
-    permission_classes = [IsAdminOrReadOnly]
+    permission_classes = [IsOfficerOrAdminOrReadOnly]
 
     def get_queryset(self):
         qs = Dataset.objects.all()
@@ -315,7 +315,7 @@ class PredictionViewSet(viewsets.ReadOnlyModelViewSet):
 class ModelVersionViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = ModelVersion.objects.all().order_by('-training_date')
     serializer_class = ModelVersionSerializer
-    permission_classes = []  # Public read
+    permission_classes = [IsAdminOrReadOnly]
 
     def get_queryset(self):
         qs = ModelVersion.objects.all()
@@ -331,7 +331,7 @@ class ModelVersionViewSet(viewsets.ReadOnlyModelViewSet):
             return Response(self.get_serializer(model).data)
         return Response({'error': 'No active model found'}, status=status.HTTP_404_NOT_FOUND)
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminRole])
     def train(self, request):
         from ml_service.models import train_model_for_dataset
         dataset_id = request.data.get('dataset_id')
@@ -356,7 +356,7 @@ class ModelVersionViewSet(viewsets.ReadOnlyModelViewSet):
             logger.error(f"Model training error: {e}")
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminRole])
     def activate(self, request, pk=None):
         model = self.get_object()
         # Deactivate all others

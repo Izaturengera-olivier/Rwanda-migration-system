@@ -80,8 +80,10 @@ function Login({ onLoginSuccess }) {
       setSuccess(`Login successful! Welcome back, ${userData.username}.`);
 
       setTimeout(() => {
-        if (userData.is_admin) {
+        if (userData.is_admin || userData.role === "admin") {
           navigate("/admin");
+        } else if (userData.is_officer || userData.role === "officer" || userData.role === "researcher") {
+          navigate("/data-management");
         } else {
           navigate("/dashboard");
         }

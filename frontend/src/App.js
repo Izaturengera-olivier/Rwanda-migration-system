@@ -46,9 +46,7 @@ const PUBLIC_NAV = [
   { label: "Home", path: "/" },
   { label: "Dashboard", path: "/dashboard" },
   { label: "Infrastructure", path: "/infrastructure" },
-  { label: "Compare", path: "/compare" },
   { label: "Trends", path: "/trends" },
-  { label: "Reports", path: "/reports" },
 ];
 
 export function getUserRoleLabel(user) {
@@ -85,8 +83,14 @@ function NavBar({ user, onLogout }) {
   if (location.pathname === "/") return null;
 
   const navLinks = [...PUBLIC_NAV];
-  if (isUserAdmin(user)) {
-    navLinks.push({ label: "Admin Dashboard", path: "/admin" });
+  if (isUserOfficer(user)) {
+    navLinks.push({ label: "Compare", path: "/compare" });
+    navLinks.push({ label: "Reports", path: "/reports" });
+    if (isUserAdmin(user)) {
+      navLinks.push({ label: "Admin Dashboard", path: "/admin" });
+    } else {
+      navLinks.push({ label: "Data Management", path: "/data-management" });
+    }
   }
 
   return (
@@ -255,24 +259,41 @@ function ProtectedOfficer({ user, children, featureName = "This feature" }) {
   return children;
 }
 
-function ProtectedAdmin({ user }) {
+function ProtectedManagement({ user, adminOnly = false }) {
   const navigate = useNavigate();
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isUserAdmin(user)) {
+  if (adminOnly && !isUserAdmin(user)) {
     return (
       <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 500, textAlign: "center" }} elevation={3}>
           <Alert severity="warning" sx={{ mb: 2 }}>
-            <strong>Access Denied:</strong> Administrator role is required to
-            access the Admin Dashboard.
+            <strong>Access Denied:</strong> Administrator role is required to access the Admin Dashboard.
           </Alert>
           <Typography variant="body2" color="text.secondary" paragraph>
-            You are currently signed in as <strong>{user.username}</strong> (
-            {getUserRoleLabel(user)}).
+            You are currently signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)}).
+          </Typography>
+          <Button variant="contained" onClick={() => navigate("/dashboard")}>
+            Go to Main Dashboard
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  if (!isUserOfficer(user)) {
+    return (
+      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+        <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            <strong>Access Denied:</strong> Officer or Administrator role is required to access Data Management.
+          </Alert>
+          <Typography variant="body2" color="text.secondary" paragraph>
+            You are currently signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)}).
+            Contact an administrator if you require Officer privileges to upload datasets.
           </Typography>
           <Button variant="contained" onClick={() => navigate("/dashboard")}>
             Go to Main Dashboard
@@ -372,7 +393,8 @@ function App() {
             path="/login"
             element={<Login onLoginSuccess={(u) => setUser(u)} />}
           />
-          <Route path="/admin" element={<ProtectedAdmin user={user} />} />
+          <Route path="/admin" element={<ProtectedManagement user={user} adminOnly={true} />} />
+          <Route path="/data-management" element={<ProtectedManagement user={user} adminOnly={false} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Container>

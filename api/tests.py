@@ -56,6 +56,18 @@ class APIEndpointsTest(TestCase):
             password="adminpassword",
             role="admin"
         )
+        self.officer_user = User.objects.create_user(
+            username="officer_test",
+            email="officer@test.local",
+            password="officerpassword",
+            role="officer"
+        )
+        self.regular_user = User.objects.create_user(
+            username="user_test",
+            email="user@test.local",
+            password="userpassword",
+            role="user"
+        )
 
     def test_locations_list(self):
         response = self.client.get('/api/locations/')
@@ -104,3 +116,39 @@ class APIEndpointsTest(TestCase):
         data = response.json()
         self.assertIn('token', data)
         self.assertTrue(data['is_admin'])
+
+    def test_officer_can_upload_dataset(self):
+        from io import BytesIO
+        self.client.force_authenticate(user=self.officer_user)
+        dummy_file = BytesIO(b"Sector,Year,Population\nNyanza,2023,50000")
+        dummy_file.name = "officer_upload.csv"
+        response = self.client.post('/api/datasets/', {
+            'name': 'Officer Dataset',
+            'dataset_type': 'population',
+            'year': 2023,
+            'version': '1.0',
+            'file': dummy_file
+        }, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    def test_regular_user_cannot_upload_dataset(self):
+        from io import BytesIO
+        self.client.force_authenticate(user=self.regular_user)
+        dummy_file = BytesIO(b"Sector,Year,Population\nNyanza,2023,50000")
+        dummy_file.name = "user_upload.csv"
+        response = self.client.post('/api/datasets/', {
+            'name': 'User Dataset',
+            'dataset_type': 'population',
+            'year': 2023,
+            'version': '1.0',
+            'file': dummy_file
+        }, format='multipart')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_officer_cannot_train_model(self):
+        self.client.force_authenticate(user=self.officer_user)
+        response = self.client.post('/api/models/train/', {
+            'dataset_id': self.dataset.id,
+            'algorithm': 'random_forest'
+        })
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

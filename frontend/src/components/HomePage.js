@@ -36,6 +36,7 @@ import {
     Storage,
 } from '@mui/icons-material';
 import axios from 'axios';
+import { getUserRoleLabel, isUserAdmin, isUserOfficer } from '../App';
 import logo from '../logo.png';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -134,11 +135,14 @@ function HomePage({ user, onLogout }) {
             }
             localStorage.setItem('user', JSON.stringify(userData));
 
-            const isSystemAdmin = userData.is_admin;
+            const isSystemAdmin = isUserAdmin(userData);
+            const isOfficer = isUserOfficer(userData);
             const targetMessage = isSystemAdmin
                 ? 'Login successful! Redirecting to Admin Dashboard...'
-                : 'Login successful! Redirecting to Dashboard...';
-            const targetPath = isSystemAdmin ? '/admin' : '/dashboard';
+                : isOfficer
+                    ? 'Login successful! Redirecting to Data Management...'
+                    : 'Login successful! Redirecting to Dashboard...';
+            const targetPath = isSystemAdmin ? '/admin' : isOfficer ? '/data-management' : '/dashboard';
 
             handleAuthMessage('success', targetMessage);
             setTimeout(() => {
@@ -287,14 +291,16 @@ function HomePage({ user, onLogout }) {
                             >
                                 Infrastructure
                             </Button>
-                            <Button
-                                variant="text"
-                                sx={{ color: '#cbd5e1', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
-                                onClick={() => navigate('/compare')}
-                            >
-                                Compare
-                            </Button>
-                            {user?.is_admin && (
+                            {isUserOfficer(user) && (
+                                <Button
+                                    variant="text"
+                                    sx={{ color: '#cbd5e1', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
+                                    onClick={() => navigate('/compare')}
+                                >
+                                    Compare
+                                </Button>
+                            )}
+                            {isUserAdmin(user) ? (
                                 <Button
                                     variant="text"
                                     sx={{ color: '#a5d6a7', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
@@ -302,7 +308,15 @@ function HomePage({ user, onLogout }) {
                                 >
                                     Admin Dashboard
                                 </Button>
-                            )}
+                            ) : isUserOfficer(user) ? (
+                                <Button
+                                    variant="text"
+                                    sx={{ color: '#a5d6a7', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
+                                    onClick={() => navigate('/data-management')}
+                                >
+                                    Data Management
+                                </Button>
+                            ) : null}
                             {!user ? (
                                 <Button
                                     variant="contained"
@@ -325,7 +339,7 @@ function HomePage({ user, onLogout }) {
                             ) : (
                                 <Stack direction="row" spacing={1} alignItems="center">
                                     <Chip
-                                        label={`${user.username} (${user.is_admin ? 'Admin' : 'User'})`}
+                                        label={`${user.username} (${getUserRoleLabel(user)})`}
                                         size="small"
                                         sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'white' }}
                                     />
@@ -504,7 +518,7 @@ function HomePage({ user, onLogout }) {
                 </Box>
 
                 <Grid container spacing={3}>
-                    {QUICK_MODULES.map((mod, idx) => (
+                    {QUICK_MODULES.filter((mod) => (mod.path === '/compare' || mod.path === '/reports') ? isUserOfficer(user) : true).map((mod, idx) => (
                         <Grid item xs={12} sm={6} md={4} key={idx}>
                             <Card
                                 elevation={0}

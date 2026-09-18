@@ -90,7 +90,7 @@ function Dashboard() {
         </Box>
         <FormControl sx={{ minWidth: 260 }}>
           <InputLabel>Select Sector to View Profile</InputLabel>
-          <Select value={selectedDistrict} label="Select District to View Profile" onChange={handleDistrictSelect}>
+          <Select value={selectedDistrict} label="Select Sector to View Profile" onChange={handleDistrictSelect}>
             {districts.map(d => <MenuItem key={d.id} value={d.id}>{d.name} — {d.province} Province</MenuItem>)}
           </Select>
         </FormControl>
@@ -130,7 +130,7 @@ function Dashboard() {
             <CardContent>
               <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>System Status</Typography>
               <Divider sx={{ my: 1 }} />
-              <Typography variant="body2"><strong>Study Districts:</strong> {stats?.total_locations || 0}</Typography>
+              <Typography variant="body2"><strong>Study Sectors:</strong> {stats?.total_locations || 0}</Typography>
               <Typography variant="body2"><strong>Active Model:</strong> {stats?.active_model_version || 'None — train a model in Admin'}</Typography>
               <Typography variant="body2">
                 <strong>Last Data Update:</strong>{' '}
@@ -182,7 +182,7 @@ function Dashboard() {
                   responsive: true,
                   maintainAspectRatio: true,
                   plugins: { legend: { display: false } },
-                  scales: { y: { beginAtZero: true, max: districtBarChart ? 100 : undefined, title: { display: true, text: districtBarChart ? 'Risk Score (%)' : 'Number of Districts' } } }
+                  scales: { y: { beginAtZero: true, max: districtBarChart ? 100 : undefined, title: { display: true, text: districtBarChart ? 'Risk Score (%)' : 'Number of Sectors' } } }
                 }} />
               </Box>
             </Paper>
@@ -197,10 +197,10 @@ function Dashboard() {
         )}
       </Grid>
 
-      {/* District Cards */}
+      {/* Sector Cards */}
       {districts.length > 0 && (
         <>
-          <Typography variant="h6" gutterBottom>Study Districts</Typography>
+          <Typography variant="h6" gutterBottom>Study Sectors</Typography>
           <Grid container spacing={2} sx={{ mb: 3 }}>
             {districts.map(d => {
               const pred = predictions.find(p => {

@@ -181,6 +181,8 @@ function AdminDashboard({ adminUser }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef();
 
+  const isAdmin = Boolean(adminUser?.is_admin || adminUser?.role === "admin");
+
   useEffect(() => {
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,9 +198,11 @@ function AdminDashboard({ adminUser }) {
 
   const fetchAll = () => {
     fetchDatasets();
-    fetchModels();
-    fetchAuditLogs();
-    fetchUsers();
+    if (isAdmin) {
+      fetchModels();
+      fetchAuditLogs();
+      fetchUsers();
+    }
   };
 
   const fetchDatasets = () =>
@@ -686,10 +690,12 @@ function AdminDashboard({ adminUser }) {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        Admin Dashboard
+        {isAdmin ? "Admin Dashboard" : "Data Management Portal"}
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
-        Manage datasets, ML models, user accounts, and system activity
+        {isAdmin
+          ? "Manage datasets, ML models, user accounts, and system activity"
+          : "Upload, validate, and manage datasets for Rwanda Youth Migration Insights"}
       </Typography>
 
       {error && (
@@ -707,7 +713,7 @@ function AdminDashboard({ adminUser }) {
       {/* Workflow Progress */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          Administrator Workflow
+          {isAdmin ? "Administrator Workflow" : "Dataset Management Workflow"}
         </Typography>
         <Stepper activeStep={currentStep} alternativeLabel sx={{ mb: 2 }}>
           {WORKFLOW_STEPS.map((label) => (
@@ -746,53 +752,63 @@ function AdminDashboard({ adminUser }) {
           >
             3. Review Data Quality
           </Button>
-          <Button
-            variant="outlined"
-            disabled={processedDatasets.length === 0}
-            onClick={() => {
-              setTrainForm({
-                ...trainForm,
-                dataset_id: processedDatasets[0]?.id || "",
-              });
-              setTrainDialog(true);
-            }}
-          >
-            4. Train Model
-          </Button>
-          <Button
-            variant="outlined"
-            disabled={models.length === 0}
-            onClick={() => setTab(1)}
-          >
-            5. Review Performance
-          </Button>
-          <Button
-            variant="contained"
-            color="success"
-            disabled={pendingModels.length === 0}
-            onClick={() =>
-              pendingModels.length > 0 && handleActivate(pendingModels[0].id)
-            }
-          >
-            6. Publish Results
-          </Button>
+          {isAdmin && (
+            <>
+              <Button
+                variant="outlined"
+                disabled={processedDatasets.length === 0}
+                onClick={() => {
+                  setTrainForm({
+                    ...trainForm,
+                    dataset_id: processedDatasets[0]?.id || "",
+                  });
+                  setTrainDialog(true);
+                }}
+              >
+                4. Train Model
+              </Button>
+              <Button
+                variant="outlined"
+                disabled={models.length === 0}
+                onClick={() => setTab(1)}
+              >
+                5. Review Performance
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                disabled={pendingModels.length === 0}
+                onClick={() =>
+                  pendingModels.length > 0 && handleActivate(pendingModels[0].id)
+                }
+              >
+                6. Publish Results
+              </Button>
+            </>
+          )}
         </Box>
       </Paper>
 
       <Paper>
-        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
+        <Tabs value={isAdmin ? tab : 0} onChange={(_, v) => isAdmin && setTab(v)}>
           <Tab
             label={`Datasets (${filteredDatasets.length}${datasets.length !== filteredDatasets.length ? ` / ${datasets.length}` : ""})`}
           />
-          <Tab
-            label={`ML Models (${filteredModels.length}${models.length !== filteredModels.length ? ` / ${models.length}` : ""})`}
-          />
-          <Tab
-            label={`Audit Logs (${filteredAuditLogs.length}${auditLogs.length !== filteredAuditLogs.length ? ` / ${auditLogs.length}` : ""})`}
-          />
-          <Tab
-            label={`User Management (${filteredUsers.length}${users.length !== filteredUsers.length ? ` / ${users.length}` : ""})`}
-          />
+          {isAdmin && (
+            <Tab
+              label={`ML Models (${filteredModels.length}${models.length !== filteredModels.length ? ` / ${models.length}` : ""})`}
+            />
+          )}
+          {isAdmin && (
+            <Tab
+              label={`Audit Logs (${filteredAuditLogs.length}${auditLogs.length !== filteredAuditLogs.length ? ` / ${auditLogs.length}` : ""})`}
+            />
+          )}
+          {isAdmin && (
+            <Tab
+              label={`User Management (${filteredUsers.length}${users.length !== filteredUsers.length ? ` / ${users.length}` : ""})`}
+            />
+          )}
         </Tabs>
 
         {/* DATASETS TAB */}
