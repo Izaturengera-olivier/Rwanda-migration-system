@@ -94,7 +94,7 @@ class Command(BaseCommand):
                         district=district_name,
                         sector=sector_name,
                         defaults={
-                            'name': f"{sector_name} Sector ({district_name})",
+                            'name': sector_name,
                             'location_type': 'sector',
                             'province': province,
                             'district': district_name,

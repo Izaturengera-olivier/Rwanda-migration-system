@@ -94,7 +94,7 @@ function NavBar({ user, onLogout }) {
   }
 
   return (
-    <AppBar position="static">
+    <AppBar position="fixed" sx={{ zIndex: 1300 }}>
       <Toolbar>
         <Box
           display="flex"
@@ -239,7 +239,7 @@ function ProtectedOfficer({ user, children, featureName = "This feature" }) {
 
   if (user && !isUserOfficer(user)) {
     return (
-      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
           <Alert severity="info" sx={{ mb: 2 }}>
             <strong>Officer Role Required:</strong> {featureName} is reserved for <strong>Officer</strong> and <strong>Administrator</strong> accounts.
@@ -268,7 +268,7 @@ function ProtectedManagement({ user, adminOnly = false }) {
 
   if (adminOnly && !isUserAdmin(user)) {
     return (
-      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 500, textAlign: "center" }} elevation={3}>
           <Alert severity="warning" sx={{ mb: 2 }}>
             <strong>Access Denied:</strong> Administrator role is required to access the Admin Dashboard.
@@ -286,7 +286,7 @@ function ProtectedManagement({ user, adminOnly = false }) {
 
   if (!isUserOfficer(user)) {
     return (
-      <Box sx={{ mt: 6, display: "flex", justifyContent: "center" }}>
+      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
         <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
           <Alert severity="warning" sx={{ mb: 2 }}>
             <strong>Access Denied:</strong> Officer or Administrator role is required to access Data Management.
@@ -362,7 +362,7 @@ function App() {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <NavBar user={user} onLogout={handleLogout} />
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, flex: 1 }}>
+      <Container maxWidth="xl" sx={{ mt: 10, mb: 4, flex: 1 }}>
         <Routes>
           <Route
             path="/"

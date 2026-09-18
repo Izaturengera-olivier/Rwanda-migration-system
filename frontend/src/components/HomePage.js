@@ -238,10 +238,15 @@ function HomePage({ user, onLogout }) {
     };
 
     return (
-        <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc' }}>
+        <Box sx={{ minHeight: '100vh', bgcolor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
             {/* Top Custom Header embedded in Home Page */}
             <Box
                 sx={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 1300,
                     background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
                     py: 1.5,
@@ -363,33 +368,33 @@ function HomePage({ user, onLogout }) {
                 sx={{
                     background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f2b46 100%)',
                     color: 'white',
-                    pt: { xs: 6, md: 10 },
-                    pb: { xs: 8, md: 12 },
+                    pt: { xs: 10, md: 12 },
+                    pb: { xs: 6, md: 8 },
                     position: 'relative',
                     overflow: 'hidden',
                 }}
             >
-                <Container maxWidth="lg">
-                    <Grid container spacing={4} justifyContent="center" alignItems="center">
-                        <Grid item xs={12} md={10} lg={9}>
-                            <Stack spacing={3} alignItems="center" textAlign="center">
+                <Box sx={{ px: { xs: 0.5, md: 1 } }}>
+                    <Grid container spacing={2} justifyContent="center" alignItems="center">
+                        <Grid item xs={12} md={12} lg={12}>
+                            <Stack spacing={2} alignItems="center" textAlign="center">
                                 <Box
                                     component="img"
                                     src={logo}
                                     alt="Rwanda Youth Migration & Infrastructure Insights Logo"
                                     sx={{
-                                        width: { xs: 140, sm: 180, md: 220 },
+                                        width: { xs: 100, sm: 120, md: 140 },
                                         height: 'auto',
-                                        maxHeight: 220,
+                                        maxHeight: 140,
                                         objectFit: 'contain',
                                         bgcolor: 'white',
                                         borderRadius: '50%',
-                                        p: 1.5,
-                                        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)',
-                                        border: '4px solid rgba(255, 255, 255, 0.15)',
+                                        p: 1,
+                                        boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                                        border: '3px solid rgba(255, 255, 255, 0.15)',
                                         transition: 'transform 0.3s ease',
                                         '&:hover': {
-                                            transform: 'scale(1.03)',
+                                            transform: 'scale(1.02)',
                                         },
                                     }}
                                 />
@@ -398,10 +403,10 @@ function HomePage({ user, onLogout }) {
                                     sx={{
                                         display: 'inline-flex',
                                         alignItems: 'center',
-                                        gap: 1,
-                                        px: 2,
-                                        py: 0.75,
-                                        borderRadius: 20,
+                                        gap: 0.5,
+                                        px: 1.5,
+                                        py: 0.5,
+                                        borderRadius: 16,
                                         bgcolor: 'rgba(37, 99, 235, 0.15)',
                                         border: '1px solid rgba(37, 99, 235, 0.3)',
                                         color: '#60a5fa',
@@ -409,8 +414,8 @@ function HomePage({ user, onLogout }) {
                                         mx: 'auto',
                                     }}
                                 >
-                                    <Shield fontSize="small" />
-                                    <Typography variant="subtitle2" fontWeight={600} sx={{ letterSpacing: 0.5 }}>
+                                    <Shield fontSize="small" sx={{ fontSize: 16 }} />
+                                    <Typography variant="caption" fontWeight={600} sx={{ letterSpacing: 0.3, fontSize: '0.75rem' }}>
                                         Decision Support System for Policy Makers & Researchers
                                     </Typography>
                                 </Box>
@@ -418,10 +423,10 @@ function HomePage({ user, onLogout }) {
                                 <Typography
                                     variant="h1"
                                     sx={{
-                                        fontSize: { xs: '2.2rem', sm: '3.2rem', md: '3.8rem' },
-                                        fontWeight: 800,
-                                        lineHeight: 1.15,
-                                        letterSpacing: '-0.02em',
+                                        fontSize: { xs: '1.5rem', sm: '2rem', md: '2.5rem' },
+                                        fontWeight: 700,
+                                        lineHeight: 1.2,
+                                        letterSpacing: '-0.01em',
                                         textAlign: 'center',
                                     }}
                                 >
@@ -429,14 +434,15 @@ function HomePage({ user, onLogout }) {
                                 </Typography>
 
                                 <Typography
-                                    variant="h6"
+                                    variant="body1"
                                     sx={{
                                         color: '#94a3b8',
                                         fontWeight: 400,
-                                        maxWidth: 720,
-                                        lineHeight: 1.6,
+                                        maxWidth: 800,
+                                        lineHeight: 1.5,
                                         textAlign: 'center',
                                         mx: 'auto',
+                                        fontSize: { xs: '0.875rem', sm: '0.95rem', md: '1rem' },
                                     }}
                                 >
                                     Monitor vulnerable sectors, assess infrastructure deficits, and analyze socio-economic factors driving youth out-migration across administrative sectors of Gisagara District, Rwanda.
@@ -449,35 +455,17 @@ function HomePage({ user, onLogout }) {
                                     alignItems="center"
                                     sx={{ pt: 1 }}
                                 >
-
-                                    <Button
-                                        variant="outlined"
-                                        size="large"
-                                        startIcon={<Person />}
-                                        onClick={() => handleOpenAuth(0)}
-                                        sx={{
-                                            color: '#e2e8f0',
-                                            borderColor: 'rgba(255, 255, 255, 0.3)',
-                                            py: 1.6,
-                                            px: 3.5,
-                                            borderRadius: 2.5,
-                                            fontWeight: 600,
-                                            fontSize: '1rem',
-                                            textTransform: 'none',
-                                            '&:hover': { borderColor: 'white', bgcolor: 'rgba(255, 255, 255, 0.05)' },
-                                        }}
-                                    >
-                                        Portal Sign In
-                                    </Button>
                                 </Stack>
                             </Stack>
                         </Grid>
                     </Grid>
-                </Container>
+                </Box>
             </Box>
 
-            {/* Metrics Counter Bar */}
-            <Container maxWidth="lg" sx={{ mt: -5, position: 'relative', zIndex: 10 }}>
+            {/* Main Content Area */}
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                {/* Metrics Counter Bar */}
+                <Box sx={{ mt: 2, position: 'relative', zIndex: 10, px: { xs: 0.5, md: 1 } }}>
                 <Grid container spacing={2}>
                     {METRICS.map((metric, idx) => (
                         <Grid item xs={6} md={3} key={idx}>
@@ -503,11 +491,11 @@ function HomePage({ user, onLogout }) {
                         </Grid>
                     ))}
                 </Grid>
-            </Container>
+                </Box>
 
-            {/* Platform Analytics Modules Grid */}
-            <Container maxWidth="lg" sx={{ py: 8 }}>
-                <Box sx={{ textAlign: 'center', mb: 6 }}>
+                {/* Platform Analytics Modules Grid */}
+                <Box sx={{ py: 3, flex: 1, px: { xs: 0.5, md: 1 } }}>
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
                     <Chip label="System Capabilities" color="primary" variant="outlined" sx={{ fontWeight: 600, mb: 1 }} />
                     <Typography variant="h4" fontWeight={800} color="#0f172a" sx={{ mb: 1 }}>
                         Comprehensive Spatial & Risk Analysis Modules
@@ -573,7 +561,8 @@ function HomePage({ user, onLogout }) {
                         </Grid>
                     ))}
                 </Grid>
-            </Container>
+            </Box>
+            </Box>
 
             {/* Authentication Dialog (Modal) */}
             <Dialog
