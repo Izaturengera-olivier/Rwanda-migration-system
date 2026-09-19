@@ -120,12 +120,31 @@ class LocationViewSet(viewsets.ReadOnlyModelViewSet):
         def get_or_none(model, **kwargs):
             return model.objects.filter(**kwargs).order_by('-id').first()
 
-        population = get_or_none(PopulationData, location=location, year=target_year)
-        migration = get_or_none(MigrationData, location=location, year=target_year)
-        employment = get_or_none(EmploymentData, location=location, year=target_year)
-        education = get_or_none(EducationData, location=location, year=target_year)
-        healthcare = get_or_none(HealthcareData, location=location, year=target_year)
-        infrastructure = get_or_none(InfrastructureData, location=location, year=target_year)
+        def get_data_with_fallback(model, location, preferred_year):
+            """Get data for preferred year, fallback to nearest available year."""
+            # Try preferred year first
+            data = get_or_none(model, location=location, year=preferred_year)
+            if data:
+                return data
+            
+            # If no data for preferred year, try to find the nearest year
+            available_years = model.objects.filter(
+                location=location
+            ).values_list('year', flat=True).distinct().order_by('-year')
+            
+            if not available_years:
+                return None
+            
+            # Find the closest year to preferred_year
+            closest_year = min(available_years, key=lambda y: abs(y - preferred_year))
+            return get_or_none(model, location=location, year=closest_year)
+
+        population = get_data_with_fallback(PopulationData, location, target_year)
+        migration = get_data_with_fallback(MigrationData, location, target_year)
+        employment = get_data_with_fallback(EmploymentData, location, target_year)
+        education = get_data_with_fallback(EducationData, location, target_year)
+        healthcare = get_data_with_fallback(HealthcareData, location, target_year)
+        infrastructure = get_data_with_fallback(InfrastructureData, location, target_year)
 
         return Response({
             'location': LocationSerializer(location).data,
@@ -456,22 +475,41 @@ class DashboardViewSet(viewsets.ViewSet):
             }
             target_year = year if year else (pred.year if pred else 2023)
 
-            infra = InfrastructureData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            def get_data_with_fallback(model, location, preferred_year):
+                """Get data for preferred year, fallback to nearest available year."""
+                # Try preferred year first
+                data = model.objects.filter(location=location, year=preferred_year).order_by('-id').first()
+                if data:
+                    return data
+                
+                # If no data for preferred year, try to find the nearest year
+                available_years = model.objects.filter(
+                    location=location
+                ).values_list('year', flat=True).distinct().order_by('-year')
+                
+                if not available_years:
+                    return None
+                
+                # Find the closest year to preferred_year
+                closest_year = min(available_years, key=lambda y: abs(y - preferred_year))
+                return model.objects.filter(location=location, year=closest_year).order_by('-id').first()
+
+            infra = get_data_with_fallback(InfrastructureData, loc, target_year)
             if infra and infra.infrastructure_gap_index is not None:
                 row['infrastructure_gap_index'] = float(infra.infrastructure_gap_index)
 
-            emp = EmploymentData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            emp = get_data_with_fallback(EmploymentData, loc, target_year)
             if emp:
                 if emp.unemployment_rate is not None:
                     row['unemployment_rate'] = float(emp.unemployment_rate)
                 if emp.youth_unemployment_rate is not None:
                     row['youth_unemployment_rate'] = float(emp.youth_unemployment_rate)
 
-            edu = EducationData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            edu = get_data_with_fallback(EducationData, loc, target_year)
             if edu and edu.education_access_index is not None:
                 row['education_access_index'] = float(edu.education_access_index)
 
-            health = HealthcareData.objects.filter(location=loc, year=target_year).order_by('-id').first()
+            health = get_data_with_fallback(HealthcareData, loc, target_year)
             if health and health.healthcare_access_index is not None:
                 row['healthcare_access_index'] = float(health.healthcare_access_index)
 
