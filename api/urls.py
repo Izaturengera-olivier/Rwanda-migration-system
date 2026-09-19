@@ -4,7 +4,7 @@ from .views import (
     LocationViewSet, DatasetViewSet, PredictionViewSet,
     ModelVersionViewSet, DashboardViewSet, AuditLogViewSet,
     UserViewSet, LoginView, LogoutView, UserRegistrationView,
-    ForgotPasswordView, ResetPasswordView
+    ForgotPasswordView, ResetPasswordView, NotificationViewSet
 )
 
 router = DefaultRouter()
@@ -15,6 +15,7 @@ router.register(r'models', ModelVersionViewSet, basename='modelversion')
 router.register(r'dashboard', DashboardViewSet, basename='dashboard')
 router.register(r'audit-logs', AuditLogViewSet, basename='auditlog')
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('locations/study-districts/', LocationViewSet.as_view({'get': 'study_districts'}), name='study-districts'),

@@ -3,7 +3,7 @@ from django.contrib import admin
 from .models import (
     User, Location, Dataset, PopulationData, MigrationData,
     EmploymentData, EducationData, HealthcareData, InfrastructureData,
-    ModelVersion, ModelPrediction, AuditLog
+    ModelVersion, ModelPrediction, AuditLog, Notification, NotificationRead
 )
 
 
@@ -93,3 +93,19 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ['action', 'timestamp']
     search_fields = ['user__username', 'description']
     readonly_fields = ['timestamp']
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['title', 'infrastructure_sector', 'location', 'sent_by', 'created_at']
+    list_filter = ['infrastructure_sector', 'created_at']
+    search_fields = ['title', 'message', 'sent_by__username']
+    readonly_fields = ['created_at', 'updated_at']
+
+
+@admin.register(NotificationRead)
+class NotificationReadAdmin(admin.ModelAdmin):
+    list_display = ['notification', 'user', 'read_at']
+    list_filter = ['read_at']
+    search_fields = ['user__username', 'notification__title']
+    readonly_fields = ['read_at']

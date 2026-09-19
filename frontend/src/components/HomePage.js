@@ -37,6 +37,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { getUserRoleLabel, isUserAdmin, isUserOfficer } from '../App';
+import Messages from './Messages';
 import logo from '../logo.png';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -305,6 +306,15 @@ function HomePage({ user, onLogout }) {
                                     Compare
                                 </Button>
                             )}
+                            {isUserOfficer(user) && (
+                                <Button
+                                    variant="text"
+                                    sx={{ color: '#cbd5e1', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
+                                    onClick={() => navigate('/reports')}
+                                >
+                                    Reports
+                                </Button>
+                            )}
                             {isUserAdmin(user) ? (
                                 <Button
                                     variant="text"
@@ -319,7 +329,7 @@ function HomePage({ user, onLogout }) {
                                     sx={{ color: '#a5d6a7', display: { xs: 'none', md: 'inline-flex' }, '&:hover': { color: 'white' } }}
                                     onClick={() => navigate('/data-management')}
                                 >
-                                    Data Management
+                                    Officer Portal
                                 </Button>
                             ) : null}
                             {!user ? (
@@ -343,6 +353,7 @@ function HomePage({ user, onLogout }) {
                                 </Button>
                             ) : (
                                 <Stack direction="row" spacing={1} alignItems="center">
+                                    <Messages user={user} />
                                     <Chip
                                         label={`${user.username} (${getUserRoleLabel(user)})`}
                                         size="small"

@@ -42,9 +42,33 @@ import DownloadIcon from "@mui/icons-material/Download";
 import EditIcon from "@mui/icons-material/Edit";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
+import SendIcon from "@mui/icons-material/Send";
+import MailOutlineIcon from "@mui/icons-material/MailOutline";
 import axios from "axios";
 
 const API_BASE = "http://localhost:8000/api";
+
+const INFRA_SECTORS = [
+  { value: "water", label: "Water" },
+  { value: "electricity", label: "Electricity" },
+  { value: "healthcare", label: "Healthcare" },
+  { value: "education", label: "Education" },
+  { value: "roads", label: "Roads" },
+  { value: "internet", label: "Internet" },
+  { value: "sanitation", label: "Sanitation" },
+  { value: "other", label: "Other" },
+];
+
+const SECTOR_CHIP_COLORS = {
+  water: "info",
+  electricity: "warning",
+  healthcare: "error",
+  education: "success",
+  roads: "secondary",
+  internet: "primary",
+  sanitation: "info",
+  other: "default",
+};
 
 function TabPanel({ children, value, index }) {
   return (
@@ -142,6 +166,17 @@ function AdminDashboard({ adminUser }) {
   const [userPage, setUserPage] = useState(1);
   const [userRowsPerPage, setUserRowsPerPage] = useState(10);
 
+  // District Officer → Youth notifications
+  const [notifications, setNotifications] = useState([]);
+  const [geoLocations, setGeoLocations] = useState([]);
+  const [messageForm, setMessageForm] = useState({
+    title: "",
+    message: "",
+    infrastructure_sector: "water",
+    location: "",
+  });
+  const [sendingMessage, setSendingMessage] = useState(false);
+
   useEffect(() => { setDatasetPage(1); }, [datasetSearch]);
   useEffect(() => { setModelPage(1); }, [modelSearch]);
   useEffect(() => { setAuditPage(1); }, [auditSearch]);
@@ -182,11 +217,20 @@ function AdminDashboard({ adminUser }) {
   const fileInputRef = useRef();
 
   const isAdmin = Boolean(adminUser?.is_admin || adminUser?.role === "admin");
+  const messagesTabIndex = isAdmin ? 4 : 1;
 
   useEffect(() => {
     fetchAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (tab === messagesTabIndex) {
+      fetchNotifications();
+      fetchGeoLocations();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, messagesTabIndex]);
 
   const getAuthHeaders = (isMultipart = false) => {
     const headers = {};
@@ -198,6 +242,7 @@ function AdminDashboard({ adminUser }) {
 
   const fetchAll = () => {
     fetchDatasets();
+    fetchNotifications();
     if (isAdmin) {
       fetchModels();
       fetchAuditLogs();
@@ -213,6 +258,29 @@ function AdminDashboard({ adminUser }) {
       })
       .then((r) => setDatasets(r.data.results || r.data))
       .catch(() => {});
+
+  const fetchNotifications = () =>
+    axios
+      .get(`${API_BASE}/notifications/`, {
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      })
+      .then((r) => {
+        const data = r.data.results || r.data || [];
+        setNotifications(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setNotifications([]));
+
+  const fetchGeoLocations = () =>
+    axios
+      .get(`${API_BASE}/locations/`, {
+        params: { type: "sector", district: "Gisagara" },
+      })
+      .then((r) => {
+        const data = r.data.results || r.data || [];
+        setGeoLocations(Array.isArray(data) ? data : []);
+      })
+      .catch(() => setGeoLocations([]));
 
   const fetchModels = () =>
     axios
@@ -244,6 +312,53 @@ function AdminDashboard({ adminUser }) {
   const showSuccess = (msg) => {
     setSuccess(msg);
     setTimeout(() => setSuccess(null), 5000);
+  };
+
+  const handleSendNotification = async () => {
+    if (!messageForm.title.trim() || !messageForm.message.trim()) {
+      setError("Title and message are required to notify Youth.");
+      return;
+    }
+    setSendingMessage(true);
+    setError(null);
+    try {
+      const payload = {
+        title: messageForm.title.trim(),
+        message: messageForm.message.trim(),
+        infrastructure_sector: messageForm.infrastructure_sector,
+      };
+      if (messageForm.location) payload.location = Number(messageForm.location);
+
+      await axios.post(`${API_BASE}/notifications/`, payload, {
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      });
+      setMessageForm({
+        title: "",
+        message: "",
+        infrastructure_sector: "water",
+        location: "",
+      });
+      fetchNotifications();
+      showSuccess("Notification sent to Youth successfully.");
+    } catch (err) {
+      setError(extractErrorMessage(err, "Failed to send notification."));
+    } finally {
+      setSendingMessage(false);
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    try {
+      await axios.delete(`${API_BASE}/notifications/${id}/`, {
+        headers: getAuthHeaders(),
+        withCredentials: true,
+      });
+      fetchNotifications();
+      showSuccess("Notification deleted.");
+    } catch (err) {
+      setError(extractErrorMessage(err, "Failed to delete notification."));
+    }
   };
 
   const handleUpload = async () => {
@@ -690,12 +805,12 @@ function AdminDashboard({ adminUser }) {
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
-        {isAdmin ? "Admin Dashboard" : "Data Management Portal"}
+        {isAdmin ? "Admin Dashboard" : "District Officer Portal"}
       </Typography>
       <Typography variant="body1" color="text.secondary" gutterBottom>
         {isAdmin
           ? "Manage datasets, ML models, user accounts, and system activity"
-          : "Upload, validate, and manage datasets for Rwanda Youth Migration Insights"}
+          : "Manage datasets and send infrastructure notifications to Youth"}
       </Typography>
 
       {error && (
@@ -786,11 +901,19 @@ function AdminDashboard({ adminUser }) {
               </Button>
             </>
           )}
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<MailOutlineIcon />}
+            onClick={() => setTab(messagesTabIndex)}
+          >
+            Notify Youth
+          </Button>
         </Box>
       </Paper>
 
       <Paper>
-        <Tabs value={isAdmin ? tab : 0} onChange={(_, v) => isAdmin && setTab(v)}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)}>
           <Tab
             label={`Datasets (${filteredDatasets.length}${datasets.length !== filteredDatasets.length ? ` / ${datasets.length}` : ""})`}
           />
@@ -809,6 +932,11 @@ function AdminDashboard({ adminUser }) {
               label={`User Management (${filteredUsers.length}${users.length !== filteredUsers.length ? ` / ${users.length}` : ""})`}
             />
           )}
+          <Tab
+            icon={<MailOutlineIcon />}
+            iconPosition="start"
+            label={`Messages to Youth (${notifications.length})`}
+          />
         </Tabs>
 
         {/* DATASETS TAB */}
@@ -998,7 +1126,8 @@ function AdminDashboard({ adminUser }) {
           )}
         </TabPanel>
 
-        {/* MODELS TAB */}
+        {/* MODELS TAB (admin only) */}
+        {isAdmin && (
         <TabPanel value={tab} index={1}>
           <Box
             sx={{
@@ -1159,8 +1288,10 @@ function AdminDashboard({ adminUser }) {
             </Box>
           )}
         </TabPanel>
+        )}
 
-        {/* AUDIT LOGS TAB */}
+        {/* AUDIT LOGS TAB (admin only) */}
+        {isAdmin && (
         <TabPanel value={tab} index={2}>
           <Box
             sx={{
@@ -1280,8 +1411,10 @@ function AdminDashboard({ adminUser }) {
             </Box>
           )}
         </TabPanel>
+        )}
 
-        {/* USER MANAGEMENT TAB */}
+        {/* USER MANAGEMENT TAB (admin only) */}
+        {isAdmin && (
         <TabPanel value={tab} index={3}>
           <Box
             sx={{
@@ -1378,8 +1511,8 @@ function AdminDashboard({ adminUser }) {
                           }}
                         >
                           <MenuItem value="admin">Administrator</MenuItem>
-                          <MenuItem value="officer">Officer</MenuItem>
-                          <MenuItem value="user">User (View Only)</MenuItem>
+                          <MenuItem value="officer">District Officer</MenuItem>
+                          <MenuItem value="user">Youth</MenuItem>
                         </Select>
                       </TableCell>
                       <TableCell>
@@ -1505,6 +1638,172 @@ function AdminDashboard({ adminUser }) {
                 showLastButton
               />
             </Box>
+          )}
+        </TabPanel>
+        )}
+
+        {/* MESSAGES TO YOUTH TAB */}
+        <TabPanel value={tab} index={messagesTabIndex}>
+          <Typography variant="h6" gutterBottom>
+            Notify Youth about infrastructure
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Write a message and select the infrastructure sector (water, electricity,
+            healthcare, etc.) so Youth can see planned construction updates.
+          </Typography>
+
+          <Paper variant="outlined" sx={{ p: 3, mb: 3 }}>
+            <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+              Compose message
+            </Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <TextField
+                  label="Title"
+                  fullWidth
+                  required
+                  value={messageForm.title}
+                  onChange={(e) =>
+                    setMessageForm({ ...messageForm, title: e.target.value })
+                  }
+                  placeholder="e.g. New water project in Mugombwa"
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Infrastructure sector</InputLabel>
+                  <Select
+                    value={messageForm.infrastructure_sector}
+                    label="Infrastructure sector"
+                    onChange={(e) =>
+                      setMessageForm({
+                        ...messageForm,
+                        infrastructure_sector: e.target.value,
+                      })
+                    }
+                  >
+                    {INFRA_SECTORS.map((s) => (
+                      <MenuItem key={s.value} value={s.value}>
+                        {s.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Geographic sector (optional)</InputLabel>
+                  <Select
+                    value={messageForm.location}
+                    label="Geographic sector (optional)"
+                    onChange={(e) =>
+                      setMessageForm({ ...messageForm, location: e.target.value })
+                    }
+                  >
+                    <MenuItem value="">
+                      <em>All / not specified</em>
+                    </MenuItem>
+                    {geoLocations.map((loc) => (
+                      <MenuItem key={loc.id} value={String(loc.id)}>
+                        {loc.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  label="Message"
+                  fullWidth
+                  required
+                  multiline
+                  minRows={4}
+                  value={messageForm.message}
+                  onChange={(e) =>
+                    setMessageForm({ ...messageForm, message: e.target.value })
+                  }
+                  placeholder="Describe the planned infrastructure construction or update for Youth..."
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  startIcon={<SendIcon />}
+                  onClick={handleSendNotification}
+                  disabled={sendingMessage}
+                >
+                  {sendingMessage ? "Sending..." : "Send to Youth"}
+                </Button>
+              </Grid>
+            </Grid>
+          </Paper>
+
+          <Typography variant="subtitle1" fontWeight={700} gutterBottom>
+            Sent messages ({notifications.length})
+          </Typography>
+          {notifications.length === 0 ? (
+            <Alert severity="info">
+              No messages sent yet. Use the form above to notify Youth.
+            </Alert>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Title</TableCell>
+                    <TableCell>Sector</TableCell>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Sent</TableCell>
+                    <TableCell align="right">Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {notifications.map((n) => (
+                    <TableRow key={n.id}>
+                      <TableCell>
+                        <Typography fontWeight={600}>{n.title}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {n.message?.length > 80
+                            ? `${n.message.slice(0, 80)}...`
+                            : n.message}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          size="small"
+                          label={
+                            n.infrastructure_sector_label ||
+                            n.infrastructure_sector
+                          }
+                          color={
+                            SECTOR_CHIP_COLORS[n.infrastructure_sector] ||
+                            "default"
+                          }
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>{n.location_name || "—"}</TableCell>
+                      <TableCell>
+                        {n.created_at
+                          ? new Date(n.created_at).toLocaleString()
+                          : "—"}
+                      </TableCell>
+                      <TableCell align="right">
+                        <Tooltip title="Delete">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDeleteNotification(n.id)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           )}
         </TabPanel>
       </Paper>
@@ -1722,8 +2021,8 @@ function AdminDashboard({ adminUser }) {
               }
             >
               <MenuItem value="admin">Administrator (Full Access)</MenuItem>
-              <MenuItem value="officer">Officer (Compare & Reports)</MenuItem>
-              <MenuItem value="user">User (View Only)</MenuItem>
+              <MenuItem value="officer">District Officer (Compare, Reports & Notifications)</MenuItem>
+              <MenuItem value="user">Youth (View Only)</MenuItem>
             </Select>
           </FormControl>
           <Grid container spacing={2}>
@@ -1820,8 +2119,8 @@ function AdminDashboard({ adminUser }) {
               }
             >
               <MenuItem value="admin">Administrator (Full Access)</MenuItem>
-              <MenuItem value="officer">Officer (Compare & Reports)</MenuItem>
-              <MenuItem value="user">User (View Only)</MenuItem>
+              <MenuItem value="officer">District Officer (Compare, Reports & Notifications)</MenuItem>
+              <MenuItem value="user">Youth (View Only)</MenuItem>
             </Select>
           </FormControl>
           <Grid container spacing={2}>

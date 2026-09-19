@@ -6,13 +6,14 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { Bar, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
+import { isUserOfficer } from '../App';
 
 const API_BASE = 'http://localhost:8000/api';
 
 const RISK_COLORS = { low: '#4caf50', moderate: '#ffeb3b', high: '#ff9800', very_high: '#f44336' };
 const RISK_BG = { low: '#e8f5e9', moderate: '#fffde7', high: '#fff3e0', very_high: '#ffebee' };
 
-function Dashboard() {
+function Dashboard({ user }) {
   const [stats, setStats] = useState(null);
   const [districts, setDistricts] = useState([]);
   const [predictions, setPredictions] = useState([]);
@@ -244,9 +245,13 @@ function Dashboard() {
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           <Button variant="contained" onClick={() => navigate('/map')}>View Risk Map</Button>
           <Button variant="outlined" onClick={() => navigate('/infrastructure')}>Infrastructure Gaps</Button>
-          <Button variant="outlined" onClick={() => navigate('/compare')}>Compare Sectors</Button>
+          {isUserOfficer(user) && (
+            <Button variant="outlined" onClick={() => navigate('/compare')}>Compare Sectors</Button>
+          )}
           <Button variant="outlined" onClick={() => navigate('/trends')}>Historical Trends</Button>
-          <Button variant="outlined" onClick={() => navigate('/reports')}>Generate Report</Button>
+          {isUserOfficer(user) && (
+            <Button variant="outlined" onClick={() => navigate('/reports')}>Generate Report</Button>
+          )}
         </Box>
       </Paper>
     </Box>

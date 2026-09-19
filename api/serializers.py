@@ -2,7 +2,7 @@ from rest_framework import serializers
 from core.models import (
     User, Location, Dataset, PopulationData, MigrationData,
     EmploymentData, EducationData, HealthcareData, InfrastructureData,
-    ModelVersion, ModelPrediction, AuditLog
+    ModelVersion, ModelPrediction, AuditLog, Notification, NotificationRead
 )
 
 
@@ -194,3 +194,34 @@ class DashboardStatsSerializer(serializers.Serializer):
     infrastructure_priority_count = serializers.IntegerField()
     last_data_update = serializers.DateTimeField(allow_null=True, required=False)
     active_model_version = serializers.CharField(allow_null=True, required=False)
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    sent_by_name = serializers.CharField(source='sent_by.username', read_only=True)
+    location_name = serializers.CharField(source='location.name', read_only=True, allow_null=True)
+    infrastructure_sector_label = serializers.CharField(
+        source='get_infrastructure_sector_display',
+        read_only=True,
+    )
+    is_read = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = [
+            'id', 'title', 'message', 'infrastructure_sector',
+            'infrastructure_sector_label', 'location', 'location_name',
+            'sent_by', 'sent_by_name', 'created_at', 'updated_at', 'is_read',
+        ]
+        read_only_fields = ['sent_by', 'created_at', 'updated_at']
+
+    def get_is_read(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return False
+        # Prefetched attribute from viewset when available
+        if hasattr(obj, '_is_read'):
+            return obj._is_read
+        return NotificationRead.objects.filter(
+            notification=obj,
+            user=request.user,
+        ).exists()

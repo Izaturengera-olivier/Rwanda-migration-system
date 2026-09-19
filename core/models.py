@@ -11,8 +11,8 @@ class User(AbstractUser):
     """Custom user model with role-based access."""
     ROLE_CHOICES = [
         ('admin', 'Administrator'),
-        ('officer', 'Officer'),
-        ('user', 'User'),
+        ('officer', 'District Officer'),
+        ('user', 'Youth'),
         ('viewer', 'Viewer'),
         ('researcher', 'Researcher'),
     ]
@@ -459,3 +459,78 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.action} by {self.user} at {self.timestamp}"
+
+
+class Notification(models.Model):
+    """Messages/notifications from District Officers to Youth about infrastructure."""
+    INFRASTRUCTURE_SECTOR_CHOICES = [
+        ('water', 'Water'),
+        ('electricity', 'Electricity'),
+        ('healthcare', 'Healthcare'),
+        ('education', 'Education'),
+        ('roads', 'Roads'),
+        ('internet', 'Internet'),
+        ('sanitation', 'Sanitation'),
+        ('other', 'Other'),
+    ]
+
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    infrastructure_sector = models.CharField(
+        max_length=30,
+        choices=INFRASTRUCTURE_SECTOR_CHOICES,
+        help_text='Infrastructure sector where construction/work is planned',
+    )
+    location = models.ForeignKey(
+        Location,
+        models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='notifications',
+        help_text='Optional geographic sector/district for the project',
+    )
+    sent_by = models.ForeignKey(
+        User,
+        models.CASCADE,
+        related_name='sent_notifications',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'notifications'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['created_at']),
+            models.Index(fields=['infrastructure_sector']),
+            models.Index(fields=['sent_by']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} ({self.infrastructure_sector})"
+
+
+class NotificationRead(models.Model):
+    """Tracks which Youth users have read a notification."""
+    notification = models.ForeignKey(
+        Notification,
+        models.CASCADE,
+        related_name='reads',
+    )
+    user = models.ForeignKey(
+        User,
+        models.CASCADE,
+        related_name='notification_reads',
+    )
+    read_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'notification_reads'
+        unique_together = [['notification', 'user']]
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['notification', 'user']),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} read {self.notification_id}"

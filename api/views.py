@@ -15,14 +15,15 @@ from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from core.models import (
     Location, Dataset, PopulationData, MigrationData,
     EmploymentData, EducationData, HealthcareData, InfrastructureData,
-    ModelVersion, ModelPrediction, AuditLog, User
+    ModelVersion, ModelPrediction, AuditLog, User, Notification, NotificationRead
 )
 from .serializers import (
     LocationSerializer, DatasetSerializer,
     PopulationDataSerializer, MigrationDataSerializer, EmploymentDataSerializer,
     EducationDataSerializer, HealthcareDataSerializer, InfrastructureDataSerializer,
     ModelVersionSerializer, ModelPredictionSerializer, AuditLogSerializer,
-    UserSerializer, ComparisonSerializer, DashboardStatsSerializer
+    UserSerializer, ComparisonSerializer, DashboardStatsSerializer,
+    NotificationSerializer
 )
 
 from .permissions import IsAdminRole, IsOfficerRole, IsAdminOrReadOnly, IsOfficerOrAdminOrReadOnly, IsAdminOrResearcher
@@ -607,6 +608,101 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().order_by('-timestamp')
     serializer_class = AuditLogSerializer
     permission_classes = [IsAdminRole]
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    """District Officers send notifications; Youth can view and mark them as read."""
+    serializer_class = NotificationSerializer
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_permissions(self):
+        if self.action in ('create', 'destroy'):
+            return [IsOfficerRole()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        qs = Notification.objects.select_related('sent_by', 'location').all()
+        sector = self.request.query_params.get('sector')
+        if sector:
+            qs = qs.filter(infrastructure_sector=sector)
+        return qs
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        read_ids = set(
+            NotificationRead.objects.filter(user=request.user)
+            .values_list('notification_id', flat=True)
+        )
+        page = self.paginate_queryset(queryset)
+        items = page if page is not None else queryset
+        for item in items:
+            item._is_read = item.id in read_ids
+        serializer = self.get_serializer(items, many=True)
+        if page is not None:
+            return self.get_paginated_response(serializer.data)
+        return Response(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance._is_read = NotificationRead.objects.filter(
+            notification=instance, user=request.user
+        ).exists()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def perform_create(self, serializer):
+        notification = serializer.save(sent_by=self.request.user)
+        AuditLog.objects.create(
+            user=self.request.user,
+            action='other',
+            entity_type='Notification',
+            entity_id=notification.id,
+            description=(
+                f"District Officer {self.request.user.username} sent notification "
+                f"'{notification.title}' ({notification.infrastructure_sector})"
+            ),
+        )
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        total = Notification.objects.count()
+        read = NotificationRead.objects.filter(user=request.user).count()
+        return Response({'unread_count': max(0, total - read)})
+
+    @action(detail=True, methods=['post'])
+    def mark_read(self, request, pk=None):
+        notification = self.get_object()
+        NotificationRead.objects.get_or_create(
+            notification=notification,
+            user=request.user,
+        )
+        return Response({'detail': 'Marked as read.', 'is_read': True})
+
+    @action(detail=False, methods=['post'])
+    def mark_all_read(self, request):
+        existing = set(
+            NotificationRead.objects.filter(user=request.user)
+            .values_list('notification_id', flat=True)
+        )
+        to_create = [
+            NotificationRead(notification_id=nid, user=request.user)
+            for nid in Notification.objects.exclude(id__in=existing)
+            .values_list('id', flat=True)
+        ]
+        NotificationRead.objects.bulk_create(to_create, ignore_conflicts=True)
+        return Response({'detail': 'All notifications marked as read.'})
+
+    @action(detail=False, methods=['get'])
+    def sectors(self, request):
+        return Response([
+            {'value': value, 'label': label}
+            for value, label in Notification.INFRASTRUCTURE_SECTOR_CHOICES
+        ])
 
 
 class UserRegistrationView(views.APIView):

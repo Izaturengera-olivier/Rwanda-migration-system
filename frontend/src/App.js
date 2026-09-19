@@ -38,6 +38,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import Login from "./components/Login";
 import HomePage from "./components/HomePage";
 import Footer from "./components/Footer";
+import Messages from "./components/Messages";
 import logo from "./logo.png";
 
 const API_BASE = "http://localhost:8000/api";
@@ -53,8 +54,8 @@ export function getUserRoleLabel(user) {
   if (!user) return "Guest";
   const r = (user.role || "").toLowerCase();
   if (user.is_admin || r === "admin") return "Admin";
-  if (user.is_officer || r === "officer" || r === "researcher") return "Officer";
-  return "User";
+  if (user.is_officer || r === "officer" || r === "researcher") return "District Officer";
+  return "Youth";
 }
 
 export function isUserAdmin(user) {
@@ -73,6 +74,13 @@ export function isUserOfficer(user) {
   );
 }
 
+export function isUserYouth(user) {
+  if (!user) return false;
+  if (isUserAdmin(user) || isUserOfficer(user)) return false;
+  const r = (user.role || "").toLowerCase();
+  return r === "user" || r === "viewer" || !r;
+}
+
 function NavBar({ user, onLogout }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -89,7 +97,7 @@ function NavBar({ user, onLogout }) {
     if (isUserAdmin(user)) {
       navLinks.push({ label: "Admin Dashboard", path: "/admin" });
     } else {
-      navLinks.push({ label: "Data Management", path: "/data-management" });
+      navLinks.push({ label: "Officer Portal", path: "/data-management" });
     }
   }
 
@@ -130,6 +138,7 @@ function NavBar({ user, onLogout }) {
 
         {isMobile ? (
           <>
+            {user && <Messages user={user} />}
             <IconButton color="inherit" onClick={() => setDrawerOpen(true)}>
               <MenuIcon />
             </IconButton>
@@ -208,6 +217,7 @@ function NavBar({ user, onLogout }) {
               </Button>
             ) : (
               <>
+                <Messages user={user} />
                 <Chip
                   label={`${user.username} (${getUserRoleLabel(user)})`}
                   size="small"
@@ -234,73 +244,24 @@ function NavBar({ user, onLogout }) {
   );
 }
 
-function ProtectedOfficer({ user, children, featureName = "This feature" }) {
-  const navigate = useNavigate();
-
-  if (user && !isUserOfficer(user)) {
-    return (
-      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
-        <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
-          <Alert severity="info" sx={{ mb: 2 }}>
-            <strong>Officer Role Required:</strong> {featureName} is reserved for <strong>Officer</strong> and <strong>Administrator</strong> accounts.
-          </Alert>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            You are signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)} — View Only).
-            Contact an administrator if you require Officer access to compare sectors or generate reports.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate("/dashboard")}>
-            Return to Dashboard
-          </Button>
-        </Paper>
-      </Box>
-    );
+function ProtectedOfficer({ user, children }) {
+  if (!isUserOfficer(user)) {
+    return <Navigate to={user ? "/dashboard" : "/login"} replace />;
   }
-
   return children;
 }
 
 function ProtectedManagement({ user, adminOnly = false }) {
-  const navigate = useNavigate();
-
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   if (adminOnly && !isUserAdmin(user)) {
-    return (
-      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
-        <Paper sx={{ p: 4, maxWidth: 500, textAlign: "center" }} elevation={3}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <strong>Access Denied:</strong> Administrator role is required to access the Admin Dashboard.
-          </Alert>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            You are currently signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)}).
-          </Typography>
-          <Button variant="contained" onClick={() => navigate("/dashboard")}>
-            Go to Main Dashboard
-          </Button>
-        </Paper>
-      </Box>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   if (!isUserOfficer(user)) {
-    return (
-      <Box sx={{ mt: 10, display: "flex", justifyContent: "center" }}>
-        <Paper sx={{ p: 4, maxWidth: 520, textAlign: "center" }} elevation={3}>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            <strong>Access Denied:</strong> Officer or Administrator role is required to access Data Management.
-          </Alert>
-          <Typography variant="body2" color="text.secondary" paragraph>
-            You are currently signed in as <strong>{user.username}</strong> ({getUserRoleLabel(user)}).
-            Contact an administrator if you require Officer privileges to upload datasets.
-          </Typography>
-          <Button variant="contained" onClick={() => navigate("/dashboard")}>
-            Go to Main Dashboard
-          </Button>
-        </Paper>
-      </Box>
-    );
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <AdminDashboard adminUser={user} />;
@@ -367,14 +328,14 @@ function App() {
             path="/"
             element={<HomePage user={user} onLogout={handleLogout} />}
           />
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard user={user} />} />
           <Route path="/map" element={<MigrationRiskMap />} />
-          <Route path="/district/:id" element={<DistrictProfile />} />
+          <Route path="/district/:id" element={<DistrictProfile user={user} />} />
           <Route path="/infrastructure" element={<InfrastructureGaps />} />
           <Route
             path="/compare"
             element={
-              <ProtectedOfficer user={user} featureName="Sector Comparison">
+              <ProtectedOfficer user={user}>
                 <CompareAreas />
               </ProtectedOfficer>
             }
@@ -383,7 +344,7 @@ function App() {
           <Route
             path="/reports"
             element={
-              <ProtectedOfficer user={user} featureName="Report Generation">
+              <ProtectedOfficer user={user}>
                 <Reports />
               </ProtectedOfficer>
             }
@@ -408,7 +369,7 @@ function App() {
           {pageContent}
         </Container>
       )}
-      <Footer />
+      <Footer user={user} />
     </Box>
   );
 }

@@ -25,6 +25,7 @@ import {
   Legend,
 } from "chart.js";
 import axios from "axios";
+import { isUserOfficer } from "../App";
 
 ChartJS.register(
   RadialLinearScale,
@@ -90,7 +91,7 @@ function IndicatorBar({ label, value, max = 100, color = "#1976d2" }) {
   );
 }
 
-function DistrictProfile() {
+function DistrictProfile({ user }) {
   const { id } = useParams();
   const navigate = useNavigate();
   const [profileData, setProfileData] = useState(null);
