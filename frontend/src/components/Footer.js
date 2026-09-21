@@ -80,7 +80,7 @@ const Footer = () => {
                                 { label: 'Home', path: '/' },
                                 { label: 'Risk Dashboard', path: '/dashboard' },
                                 { label: 'Infrastructure Gaps', path: '/infrastructure' },
-                                { label: 'District Comparison', path: '/compare' },
+                                { label: 'Sector Comparison', path: '/compare' },
                                 { label: 'Migration Trends', path: '/trends' },
                                 { label: 'Analytics Reports', path: '/reports' },
                             ].map((item) => (

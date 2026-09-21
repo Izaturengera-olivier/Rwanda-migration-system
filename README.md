@@ -1,8 +1,30 @@
 # Rwanda Rural Youth Migration Risk Mapping System
 
-A comprehensive web-based predictive mapping and decision-support platform for analyzing rural youth migration risk and infrastructure gaps in Rwanda.
+**Final Year Project - Bachelor of Business Information Technology (BBIT)**
 
-## Overview
+A comprehensive web-based predictive mapping and decision-support platform for analyzing rural youth migration risk and infrastructure gaps in Rwanda, specifically focusing on Gisagara District.
+
+## Research Overview
+
+This project is part of a final year dissertation titled: **"Development of a Predictive Mapping System for Rural Youth Migration Risk Based on Infrastructure Gaps to Support Evidence-Based Decision-Making: A Case of Gisagara District"**
+
+### Research Objectives
+
+The system addresses the critical challenge of rural-to-urban migration among young people in Rwanda by:
+- Analyzing factors associated with rural youth migration using Machine Learning techniques
+- Identifying infrastructure gaps within the study area (Gisagara District)
+- Developing predictive models to estimate migration risk levels
+- Visualizing migration risks and infrastructure gaps through interactive GIS maps
+- Providing evidence-based information to support government decision-making
+
+### Study Context
+
+- **Geographic Focus**: Gisagara District, Southern Province, Rwanda
+- **Study Area**: 13 administrative sectors (Gikonko, Gishubi, Kansi, Kibirizi, Kigembe, Mamba, Muganza, Mugombwa, Mukindo, Musha, Ndora, Nyanza, Save)
+- **Target Population**: Rural youth aged 16-30 years (estimated 93,699 based on 2022 census)
+- **Key Stakeholders**: District planning officers, development organizations, policymakers
+
+## System Overview
 
 This system combines socioeconomic, demographic, infrastructure, and geographical data to apply Machine Learning for estimating migration-risk levels and uses GIS to display results geographically. It's designed for policymakers, district/sector authorities, development organizations, and researchers.
 
@@ -10,24 +32,55 @@ This system combines socioeconomic, demographic, infrastructure, and geographica
 
 The system focuses on Gisagara rural district in Rwanda:
 - **Southern Province**: Gisagara District and its 13 administrative sectors (Gikonko, Gishubi, Kansi, Kibirizi, Kigembe, Mamba, Muganza, Mugombwa, Mukindo, Musha, Ndora, Nyanza, Save)
+- **Population**: 397,051 total (96.6% rural), with 96,997 young people aged 16-30 years
+- **Study Context**: Rural areas facing infrastructure challenges and youth migration pressures
+
+## Research Methodology Integration
+
+This system implements the research methodology through:
+
+### Data Collection
+- **Primary Data**: Surveys from 398 rural youth respondents on migration factors and infrastructure access
+- **Secondary Data**: Official demographic, socioeconomic, and infrastructure datasets from government sources
+- **GIS Data**: Administrative boundaries and geographical information for mapping
+
+### Data Analysis Components
+- **Quantitative Analysis**: Statistical analysis of survey responses using frequency, percentage, and mean
+- **Machine Learning**: Predictive modeling using multiple algorithms (Random Forest, Decision Tree, Logistic Regression, etc.)
+- **GIS Analysis**: Spatial visualization of migration risks and infrastructure gaps
+- **Qualitative Analysis**: Insights from interviews with district planning officers
+
+### System Implementation
+The technical system serves as the implementation vehicle for the research findings, providing:
+- Real-time migration risk predictions
+- Interactive GIS mapping for visualization
+- Dashboard for monitoring infrastructure gaps
+- Report generation for evidence-based decision-making
 
 ## Features
 
-### User-Facing Features
-- **Interactive Dashboard**: Overview with risk summary cards, statistics, and quick actions
-- **Migration Risk Map**: Interactive GIS map showing risk levels by district/sector
+### User-Facing Features (Research Implementation)
+- **Interactive Dashboard**: Overview with risk summary cards, statistics, and quick actions for district planning officers
+- **Migration Risk Map**: Interactive GIS map showing risk levels by district/sector based on ML predictions
 - **District Profiles**: Detailed profiles with migration risk, infrastructure indicators, and contributing factors
-- **Infrastructure Gaps**: Visualization of infrastructure coverage and gaps
-- **Compare Areas**: Compare multiple districts/sectors across indicators
-- **Historical Trends**: View risk and indicator changes over time
-- **Report Generation**: Export summary reports as PDF
+- **Infrastructure Gaps**: Visualization of infrastructure coverage and gaps in education, healthcare, electricity, internet, roads, and water access
+- **Compare Areas**: Compare multiple districts/sectors across indicators for comparative analysis
+- **Historical Trends**: View risk and indicator changes over time to support longitudinal analysis
+- **Report Generation**: Export summary reports as PDF for evidence-based decision-making
 
-### Admin Features
-- **Data Upload**: Upload and validate CSV/Excel datasets
-- **Data Processing**: Clean, validate, and integrate datasets
-- **Model Training**: Train and evaluate ML models
-- **Model Management**: Version, evaluate, and activate models
-- **Audit Logs**: Track all system actions
+### Admin Features (Research Data Management)
+- **Data Upload**: Upload and validate CSV/Excel datasets from primary and secondary sources
+- **Data Processing**: Clean, validate, and integrate datasets according to research methodology
+- **Model Training**: Train and evaluate ML models using different algorithms as specified in research design
+- **Model Management**: Version, evaluate, and activate models based on performance metrics (accuracy, precision, recall, F1-score)
+- **Audit Logs**: Track all system actions for research integrity and reproducibility
+
+### Research-Specific Features
+- **Survey Data Integration**: Capability to process and analyze data from rural youth questionnaires
+- **Key Informant Insights**: Integration of qualitative data from district officer interviews
+- **Infrastructure Gap Analysis**: Comprehensive analysis of education, healthcare, employment, and infrastructure indicators
+- **Migration Risk Prediction**: ML-based prediction models using multiple algorithms for validation
+- **Geospatial Analysis**: GIS-based visualization of migration patterns and infrastructure distribution
 
 ## Technology Stack
 
@@ -83,12 +136,17 @@ Divine/
 
 ## Installation
 
+### Research Context and Setup
+
+This system was developed as part of a final year research project at the University of Kigali. The installation process is designed to support both academic research and practical implementation for district planning.
+
 ### Prerequisites
 
 - Python 3.8+
-- PostgreSQL 12+ with PostGIS extension
-- Node.js 16+ and npm
-- GDAL library
+- PostgreSQL 12+ with PostGIS extension (for spatial data processing)
+- Node.js 16+ and npm (for React frontend)
+- GDAL library (for GIS operations)
+- Research datasets (population, migration, employment, education, healthcare, infrastructure data)
 
 ### Backend Setup
 
@@ -360,16 +418,59 @@ result = import_geojson_boundary(
 - Check for missing values in training data
 - Verify feature columns match model expectations
 
+**Research Data Integration Issues**
+- Ensure survey data format matches system requirements
+- Validate that GIS boundary files are in correct GeoJSON format
+- Check that secondary data sources have consistent location codes
+- Verify temporal alignment of datasets across different years
+
+## Research Context and Academic Significance
+
+### Academic Contribution
+This project contributes to the field of Business Information Technology by:
+- Integrating Machine Learning and GIS technologies for development planning
+- Providing evidence-based decision support tools for rural development
+- Demonstrating practical application of predictive analytics in public policy
+- Addressing real-world challenges in youth migration and infrastructure planning
+
+### Research Significance
+- **Policy Impact**: Supports evidence-based decision-making for infrastructure investment and resource allocation
+- **Development Planning**: Identifies priority areas for intervention to reduce rural youth migration
+- **Methodological Innovation**: Combines quantitative ML analysis with qualitative stakeholder insights
+- **Scalability**: Framework can be adapted to other districts and regions facing similar challenges
+
 ## License
 
-This project is developed for academic and research purposes.
+This project is developed for academic and research purposes as part of a final year dissertation at the University of Kigali, School of Computing and Information Technology.
 
-## Contact
+## Research Team
 
-For questions or support, please contact the development team.
+**Student**: ABIJURU Divine  
+**Registration Number**: 2309001203  
+**Program**: Bachelor of Business Information Technology (BBIT)  
+**Supervisor**: Dr. Maurice TURINUMUKIZA  
+**Institution**: University of Kigali  
+**Submission Date**: September, 2026
 
 ## Acknowledgments
 
-- National Institute of Statistics of Rwanda (NISR)
-- Ministry of Infrastructure (MININFRA)
-- Other data sources and contributors
+- University of Kigali, School of Computing and Information Technology
+- Dr. Maurice TURINUMUKIZA (Research Supervisor)
+- National Institute of Statistics of Rwanda (NISR) for census data
+- Ministry of Infrastructure (MININFRA) for infrastructure data
+- Gisagara District authorities for cooperation and access
+- All rural youth respondents who participated in the survey
+- Family and friends for support throughout the research journey
+
+## Research Documentation
+
+For detailed research methodology, findings, and analysis, please refer to the complete dissertation document:
+- **Research Proposal**: abijuru_divineProposal.docx
+- **Final Dissertation**: Final work update (4).docx
+
+The dissertation follows standard academic structure with chapters covering:
+- Chapter 1: Introduction and Background
+- Chapter 2: Literature Review and Conceptual Framework
+- Chapter 3: Research Methodology
+- Chapter 4: System Design, Implementation, and Results
+- Chapter 5: Conclusions and Recommendations
