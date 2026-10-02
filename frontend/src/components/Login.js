@@ -18,7 +18,7 @@ import LockResetIcon from "@mui/icons-material/LockReset";
 import axios from "axios";
 import logo from "../logo.png";
 
-const API_BASE = "http://localhost:8000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
 
 function Login({ onLoginSuccess }) {
   const navigate = useNavigate();

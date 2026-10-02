@@ -6,7 +6,7 @@ import {
 import { Line } from 'react-chartjs-2';
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
 
 function Trends() {
   const [locations, setLocations] = useState([]);

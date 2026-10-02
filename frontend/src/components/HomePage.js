@@ -40,7 +40,7 @@ import { getUserRoleLabel, isUserAdmin, isUserOfficer } from '../App';
 import Messages from './Messages';
 import logo from '../logo.png';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
 
 const QUICK_MODULES = [
     {
