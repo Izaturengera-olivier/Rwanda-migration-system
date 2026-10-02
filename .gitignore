@@ -4,7 +4,8 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
+/build/
+!frontend/build/
 develop-eggs/
 dist/
 downloads/
@@ -60,7 +61,7 @@ logs/*.log
 
 # Frontend
 frontend/node_modules/
-frontend/build/
+# frontend/build/
 frontend/.env.local
 frontend/.env.development.local
 frontend/.env.test.local
