@@ -8,7 +8,7 @@ import { Bar, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
 import { isUserOfficer } from '../App';
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "/api";
 
 const RISK_COLORS = { low: '#4caf50', moderate: '#ffeb3b', high: '#ff9800', very_high: '#f44336' };
 const RISK_BG = { low: '#e8f5e9', moderate: '#fffde7', high: '#fff3e0', very_high: '#ffebee' };

@@ -6,7 +6,7 @@ import {
 import axios from 'axios';
 import { jsPDF } from 'jspdf';
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "/api";
 
 function Reports() {
   const [locations, setLocations] = useState([]);

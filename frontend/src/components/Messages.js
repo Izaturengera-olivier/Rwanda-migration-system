@@ -31,7 +31,7 @@ import DoneAllIcon from "@mui/icons-material/DoneAll";
 import axios from "axios";
 import { isUserOfficer } from "../App";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "/api";
 
 const SECTOR_COLORS = {
   water: "info",

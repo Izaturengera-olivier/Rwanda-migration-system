@@ -36,7 +36,7 @@ ChartJS.register(
   Legend,
 );
 
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000/api";
+const API_BASE = process.env.REACT_APP_API_BASE || "/api";
 
 const RISK_COLORS = {
   low: "#4caf50",
