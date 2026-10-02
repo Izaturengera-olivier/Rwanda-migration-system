@@ -26,8 +26,39 @@ class DataValidator:
         'infrastructure': ['district', 'year', 'electricity_coverage'],
     }
 
-    OPTIONAL_COLUMNS = ['sector', 'province']
-    
+    COLUMN_ALIASES = {
+        'district_name': 'district',
+        'districtname': 'district',
+        'sector_name': 'sector',
+        'sectorname': 'sector',
+        'province_name': 'province',
+        'provincename': 'province',
+        'population': 'total_population',
+        'total_pop': 'total_population',
+        'totalpop': 'total_population',
+        'pop': 'total_population',
+        'migration_rate_percentage': 'migration_rate',
+        'mig_rate': 'migration_rate',
+        'unemployment': 'unemployment_rate',
+        'unemp_rate': 'unemployment_rate',
+        'literacy': 'literacy_rate',
+        'lit_rate': 'literacy_rate',
+        'health_index': 'healthcare_access_index',
+        'healthcare_index': 'healthcare_access_index',
+        'electricity': 'electricity_coverage',
+        'electricity_access': 'electricity_coverage',
+    }
+
+    @staticmethod
+    def normalize_dataframe(df):
+        """Standardize column names to lower_snake_case and resolve common aliases."""
+        new_cols = {}
+        for col in df.columns:
+            cleaned = str(col).strip().lower().replace(' ', '_').replace('-', '_')
+            cleaned = DataValidator.COLUMN_ALIASES.get(cleaned, cleaned)
+            new_cols[col] = cleaned
+        return df.rename(columns=new_cols)
+
     @staticmethod
     def validate_file(file_path, dataset_type):
         """Validate uploaded file structure and content."""
@@ -42,6 +73,8 @@ class DataValidator:
                 df = pd.read_excel(file_path)
             else:
                 return {'valid': False, 'errors': ['Unsupported file format']}
+
+            df = DataValidator.normalize_dataframe(df)
             
             # Check required columns. 'sector' and 'province' are optional because many
             # upload files have blank values or omit them entirely.
@@ -135,6 +168,7 @@ class DataProcessor:
     def process_population_data(file_path, dataset, year):
         """Process population data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -142,11 +176,11 @@ class DataProcessor:
         for _, row in df.iterrows():
             try:
                 location = DataProcessor.get_or_create_location(
-                    row['district'],
+                    row.get('district', 'Gisagara'),
                     row.get('sector', ''),
                     row.get('province')
                 )
-                
+
                 PopulationData.objects.update_or_create(
                     location=location,
                     dataset=dataset,
@@ -177,6 +211,7 @@ class DataProcessor:
     def process_migration_data(file_path, dataset, year):
         """Process migration data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -184,7 +219,7 @@ class DataProcessor:
         for _, row in df.iterrows():
             try:
                 location = DataProcessor.get_or_create_location(
-                    row['district'],
+                    row.get('district', 'Gisagara'),
                     row.get('sector', ''),
                     row.get('province')
                 )
@@ -215,6 +250,7 @@ class DataProcessor:
     def process_employment_data(file_path, dataset, year):
         """Process employment data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -258,6 +294,7 @@ class DataProcessor:
     def process_education_data(file_path, dataset, year):
         """Process education data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -265,7 +302,7 @@ class DataProcessor:
         for _, row in df.iterrows():
             try:
                 location = DataProcessor.get_or_create_location(
-                    row['district'],
+                    row.get('district', 'Gisagara'),
                     row.get('sector', ''),
                     row.get('province')
                 )
@@ -299,6 +336,7 @@ class DataProcessor:
     def process_healthcare_data(file_path, dataset, year):
         """Process healthcare data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -306,7 +344,7 @@ class DataProcessor:
         for _, row in df.iterrows():
             try:
                 location = DataProcessor.get_or_create_location(
-                    row['district'],
+                    row.get('district', 'Gisagara'),
                     row.get('sector', ''),
                     row.get('province')
                 )
@@ -341,6 +379,7 @@ class DataProcessor:
     def process_infrastructure_data(file_path, dataset, year):
         """Process infrastructure data file."""
         df = pd.read_csv(file_path) if file_path.endswith('.csv') else pd.read_excel(file_path)
+        df = DataValidator.normalize_dataframe(df)
         
         processed = 0
         errors = []
@@ -348,7 +387,7 @@ class DataProcessor:
         for _, row in df.iterrows():
             try:
                 location = DataProcessor.get_or_create_location(
-                    row['district'],
+                    row.get('district', 'Gisagara'),
                     row.get('sector', ''),
                     row.get('province')
                 )

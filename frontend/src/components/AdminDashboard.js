@@ -1012,11 +1012,13 @@ function AdminDashboard({ adminUser }) {
                         {dataset.uploaded_by_name || "System"}
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={dataset.status}
-                          color={STATUS_COLORS[dataset.status] || "default"}
-                          size="small"
-                        />
+                        <Tooltip title={dataset.validation_errors || dataset.processing_log || "Validation or processing error"} arrow>
+                          <Chip
+                            label={dataset.status}
+                            color={STATUS_COLORS[dataset.status] || "default"}
+                            size="small"
+                          />
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         {new Date(dataset.upload_date).toLocaleDateString()}
@@ -1034,13 +1036,14 @@ function AdminDashboard({ adminUser }) {
                               Download
                             </Button>
                           </Tooltip>
-                          {dataset.status === "uploaded" && (
+                          {(dataset.status === "uploaded" || dataset.status === "error") && (
                             <Button
                               size="small"
                               variant="outlined"
+                              color={dataset.status === "error" ? "warning" : "primary"}
                               onClick={() => handleProcess(dataset.id)}
                             >
-                              Validate & Process
+                              {dataset.status === "error" ? "Retry Processing" : "Validate & Process"}
                             </Button>
                           )}
                           {(dataset.status === "processed" ||
