@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: divine-migration-system
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn config.wsgi:application --timeout 120"
+    healthCheckPath: "/"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: divine-db
+          property: connectionString
+
+databases:
+  - name: divine-db
+    plan: free
