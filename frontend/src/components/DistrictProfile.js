@@ -25,7 +25,6 @@ import {
   Legend,
 } from "chart.js";
 import axios from "axios";
-import { isUserOfficer } from "../App";
 
 ChartJS.register(
   RadialLinearScale,

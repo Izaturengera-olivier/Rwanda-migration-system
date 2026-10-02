@@ -30,7 +30,6 @@ import {
     TrendingUp,
     Description,
     Lock,
-    Person,
     Shield,
     ArrowForward,
     Storage,
@@ -105,12 +104,6 @@ function HomePage({ user, onLogout }) {
     const [resetForm, setResetForm] = useState({ email: '', verificationCode: '', newPassword: '' });
     const [status, setStatus] = useState({ type: '', message: '' });
     const [loading, setLoading] = useState(false);
-
-    const handleOpenAuth = (tabIndex = 0) => {
-        setAuthTab(tabIndex);
-        setStatus({ type: '', message: '' });
-        setAuthModalOpen(true);
-    };
 
     const handleCloseAuth = () => {
         setAuthModalOpen(false);
